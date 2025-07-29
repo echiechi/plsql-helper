@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.plsql.tools</groupId>
+        <artifactId>plsql-tools</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>cli</artifactId>
+    <packaging>jar</packaging>
+
+    <name>PL/SQL Tools CLI Module</name>
+    <description>Command Line Interface for PL/SQL tools</description>
+
+    <dependencies>
+        <!-- Dependency on the core module -->
+        <dependency>
+            <groupId>com.plsql.tools</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.plsql.tools</groupId>
+            <artifactId>processors</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Lombok is also needed here if you use Lombok annotations in CLI classes -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11</artifactId>
+        </dependency>
+
+        <!-- TODO : TESTING LATER -->
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <!-- Enable annotation processing -->
+                    <annotationProcessorPaths>
+                        <!-- Lombok first -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <!-- Our processor second (runs after Lombok) -->
+                        <path>
+                            <groupId>com.plsql.tools</groupId>
+                            <artifactId>processors</artifactId>
+                            <version>${project.parent.version}</version>
+                        </path>
+                        <!-- Include core for processor dependencies -->
+                        <path>
+                            <groupId>com.plsql.tools</groupId>
+                            <artifactId>core</artifactId>
+                            <version>${project.parent.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+
+            <!-- Make this module executable -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.plsql.tools.Main</mainClass>
+                        </manifest>
+                        <manifestEntries>
+                            <Automatic-Module-Name>plsql.cli</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- For running the CLI easily -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.plsql.tools.Main</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
