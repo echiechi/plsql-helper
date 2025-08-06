@@ -1,11 +1,15 @@
 package com.plsql.tools.example;
 
+import com.plsql.tools.annotations.Param;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
+@AllArgsConstructor
 public class Customer {
     private String pLastName;
-    private String pEmail;
+    @Param("p_email")
+    private String myEmail;
     private String pCity;
-    private char pIsActive; // TODO: handle char correctly
+    private char pIsActive;
 }

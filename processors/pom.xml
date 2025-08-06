@@ -20,6 +20,10 @@
             <artifactId>ST4</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.plsql.tools</groupId>
             <artifactId>core</artifactId>
             <version>${project.parent.version}</version>

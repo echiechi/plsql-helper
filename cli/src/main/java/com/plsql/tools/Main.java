@@ -1,6 +1,7 @@
 package com.plsql.tools;
 
 
+import com.plsql.tools.example.Customer;
 import com.plsql.tools.example.Example;
 import com.plsql.tools.example.ExampleImpl;
 import oracle.jdbc.OracleConnection;
@@ -28,5 +29,8 @@ public class Main {
         var dsProvider = new DefaultDataSourceProvider();
         dsProvider.registerDataSource("MY_DS", oracleDataSource);
         Example exp = new ExampleImpl(dsProvider);
+        var customer = new Customer("Smith", "john.smith@email.com", "New York", 'Y');
+        var result = exp.getCustomersByCriteria(customer);
+        System.out.println(result);
     }
 }

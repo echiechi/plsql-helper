@@ -19,6 +19,7 @@
         <maven.jar.version>3.3.0</maven.jar.version>
         <maven.surefire.version>3.0.0</maven.surefire.version>
         <string.template.version>4.3.4</string.template.version>
+        <apache.common.version>3.18.0</apache.common.version>
         <!-- Dependency Versions -->
         <lombok.version>1.18.30</lombok.version>
         <oracle.jdbc.version>23.4.0.24.05</oracle.jdbc.version> <!-- Use the latest stable version -->
@@ -54,6 +55,12 @@
                 <groupId>com.oracle.database.jdbc</groupId>
                 <artifactId>ojdbc11</artifactId>
                 <version>${oracle.jdbc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${apache.common.version}</version>
             </dependency>
 
             <!-- Testing Dependencies -->

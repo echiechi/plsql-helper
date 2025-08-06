@@ -1,4 +1,4 @@
-package com.plsql.tools.processor.mapping;
+package com.plsql.tools.mapping;
 
 import javax.lang.model.element.Element;
 import java.util.Objects;

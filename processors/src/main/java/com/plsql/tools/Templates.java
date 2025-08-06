@@ -1,8 +1,8 @@
-package com.plsql.tools.processor;
+package com.plsql.tools;
 
 public class Templates {
     public static final String CLASS_TEMPLATE = """
-            package <packageName>;
+            package <PACKAGE_NAME>;
             
             import com.plsql.tools.DataSourceProvider;
             import oracle.jdbc.OracleTypes;
@@ -21,37 +21,40 @@ public class Templates {
              *
              * ----------------------------------------------------------------------------
              */
-            public class <className> extends <extendedClassName> {
+            public class <CLASS_NAME> extends <EXTENDED_CLASS_NAME> {
             
-                public <className>(DataSourceProvider dataSourceProvider) {
+                public <CLASS_NAME>(DataSourceProvider dataSourceProvider) {
                     super(dataSourceProvider);
                 }
                 
-                <methods:{method |  <method>
+                <METHODS:{method |  <method>
                 }>
 
             }
             """;
     public static final String METHOD_TEMPLATE = """
-            <statementStaticCall>
-            
+            <STATEMENT_STATIC_CALL>
             @Override
-            public <returnType> <methodName>(<parameters>){
-                DataSource ds = dataSourceProvider.getDataSource("<dataSource>");
+            public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
+                DataSource ds = dataSourceProvider.getDataSource("<DATA_SOURCE>");
                 try (Connection cnx = ds.getConnection();
-                     CallableStatement stmt = cnx.prepareCall(<procedureFullName>)
+                     CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)
                 ) {
-                    int pos = 1;
-                    <statementPopulation:{statement |  <statement>
+                    <INIT_POS>
+                    <STATEMENT_POPULATION:{statement |  <statement>
                     }>
+                    <REGISTER_OUT_PARAM>
                     stmt.execute();
-                    var rest = (ResultSet) stmt.getObject(pos);
-                    while (rest.next()) {
-                        System.out.println(rest.next());
-                    }
+                    
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
+                <RETURN_STATEMENT>
             }
             """;
+    /*
+    *                     var rest = (ResultSet) stmt.getObject(pos);
+                    while (rest.next()) {
+                        System.out.println(rest.getString(2));
+                    }*/
 }

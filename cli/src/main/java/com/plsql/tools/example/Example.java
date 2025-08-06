@@ -13,5 +13,12 @@ public abstract class Example extends DataSourceAware {
     }
 
     @Procedure(name = "get_customers_by_criteria", dataSource = DataSources.MY_DS)
-    public abstract void getCustomersByCriteria(Customer customer);
+    public abstract Object getCustomersByCriteria(Customer customer);
+
+    @Procedure(name = "display_message_customer", dataSource = DataSources.MY_DS)
+    public abstract void voidCustomerTest();
+
+    @Procedure(name = "display_message_customer", dataSource = DataSources.MY_DS)
+    public abstract void params2CustomersTest(Customer customer1, int test, String test2);
+
 }
