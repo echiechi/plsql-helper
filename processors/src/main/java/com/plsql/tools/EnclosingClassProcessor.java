@@ -1,16 +1,15 @@
-package com.plsql.tools.processors;
+package com.plsql.tools;
 
-import com.plsql.tools.ProcessingContext;
-import com.plsql.tools.TemplateParams;
-import com.plsql.tools.Templates;
 import com.plsql.tools.annotations.Function;
 import com.plsql.tools.annotations.Package;
 import com.plsql.tools.annotations.Procedure;
+import com.plsql.tools.processors.ProcedureMethodGenerator;
+import com.plsql.tools.templates.TemplateParams;
+import com.plsql.tools.templates.Templates;
 import com.plsql.tools.tools.Tools;
 import org.stringtemplate.v4.ST;
 
 import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -19,15 +18,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class PackageProcessor {
+public class EnclosingClassProcessor {
     private final ProcessingContext context;
-    private final Element packageClass;
+    private final TypeElement packageClass;
     private final RoundEnvironment roundEnv;
     private final Package packageAnnotation;
     private final List<String> generatedMethods;
     private final Set<String> processedMethods;
 
-    public PackageProcessor(ProcessingContext context, Element packageClass, RoundEnvironment roundEnv) {
+    public EnclosingClassProcessor(ProcessingContext context, TypeElement packageClass, RoundEnvironment roundEnv) {
         this.context = context;
         this.packageClass = packageClass;
         this.roundEnv = roundEnv;
@@ -55,7 +54,7 @@ public class PackageProcessor {
     private void processMethod(ExecutableElement method) {
         String methodName = method.getSimpleName().toString();
 
-        if (processedMethods.contains(methodName)) {
+        if (processedMethods.contains(methodName)) { // should not be possible ?
             context.logWarning("Duplicate method name found: " + methodName);
             return;
         }

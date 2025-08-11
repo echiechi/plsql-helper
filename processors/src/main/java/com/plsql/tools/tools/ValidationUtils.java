@@ -5,9 +5,15 @@ public class ValidationUtils {
     private static final String GETTER_PREFIX_GET = "get";
     private static final String GETTER_PREFIX_IS = "is";
 
+    private static final String GETTER_PREFIX_SET = "set";
+
     public static boolean isValidGetter(String methodName) {
         return methodName != null &&
                 (methodName.startsWith(GETTER_PREFIX_GET) || methodName.startsWith(GETTER_PREFIX_IS));
+    }
+
+    public static boolean isValidSetter(String methodName) {
+        return methodName != null && methodName.startsWith(GETTER_PREFIX_SET);
     }
 
     public static boolean isValidMethodName(String methodName) {

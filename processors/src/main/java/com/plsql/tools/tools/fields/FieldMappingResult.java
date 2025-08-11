@@ -1,28 +1,22 @@
 package com.plsql.tools.tools.fields;
 
-import com.plsql.tools.mapping.ObjectField;
-
-import javax.lang.model.element.Element;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FieldMappingResult {
-    private final Map<ObjectField, Element> fieldMethodMap;
+    private final Set<ExtractedField> fieldMethodMap;
     private final List<String> warnings;
     private final boolean success;
     private final String errorMessage;
 
-    private FieldMappingResult(Map<ObjectField, Element> fieldMethodMap, List<String> warnings,
+    private FieldMappingResult(Set<ExtractedField> fieldMethodMap, List<String> warnings,
                                boolean success, String errorMessage) {
-        this.fieldMethodMap = fieldMethodMap != null ? fieldMethodMap : new LinkedHashMap<>();
+        this.fieldMethodMap = fieldMethodMap != null ? fieldMethodMap : new LinkedHashSet<>();
         this.warnings = warnings != null ? warnings : new ArrayList<>();
         this.success = success;
         this.errorMessage = errorMessage;
     }
 
-    public static FieldMappingResult success(Map<ObjectField, Element> fieldMethodMap, List<String> warnings) {
+    public static FieldMappingResult success(Set<ExtractedField> fieldMethodMap, List<String> warnings) {
         return new FieldMappingResult(fieldMethodMap, warnings, true, null);
     }
 
@@ -30,7 +24,7 @@ public class FieldMappingResult {
         return new FieldMappingResult(null, null, false, errorMessage);
     }
 
-    public Map<ObjectField, Element> getFieldMethodMap() {
+    public Set<ExtractedField> getFieldMethodMap() {
         return fieldMethodMap;
     }
 

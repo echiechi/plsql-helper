@@ -1,9 +1,9 @@
-package com.plsql.tools;
+package com.plsql.tools.templates;
 
 public class Templates {
     public static final String CLASS_TEMPLATE = """
             package <PACKAGE_NAME>;
-            
+                        
             import com.plsql.tools.DataSourceProvider;
             import oracle.jdbc.OracleTypes;
                         
@@ -12,6 +12,7 @@ public class Templates {
             import java.sql.Connection;
             import java.sql.ResultSet;
             import java.sql.SQLException;
+            import java.sql.JDBCType;
             /**
              * ----------------------------------------------------------------------------
              * THIS IS A GENERATED FILE - DO NOT EDIT MANUALLY
@@ -22,7 +23,7 @@ public class Templates {
              * ----------------------------------------------------------------------------
              */
             public class <CLASS_NAME> extends <EXTENDED_CLASS_NAME> {
-            
+                        
                 public <CLASS_NAME>(DataSourceProvider dataSourceProvider) {
                     super(dataSourceProvider);
                 }
@@ -31,6 +32,9 @@ public class Templates {
                 }>
 
             }
+            """;
+    public static final String PROCEDURE_CALL_TEMPLATE = """
+            public static final String <PROCEDURE_FULL_NAME> = "{ call <PACKAGE_CALL_NAME><PROCEDURE_CALL_NAME>(<PROCEDURE_PARAMETERS>) }";
             """;
     public static final String METHOD_TEMPLATE = """
             <STATEMENT_STATIC_CALL>
@@ -45,16 +49,24 @@ public class Templates {
                     }>
                     <REGISTER_OUT_PARAM>
                     stmt.execute();
-                    
+                    <OUT_STATEMENTS>
+                    <RESULT_SET_EXTRACTION>
+                    <RETURN_STATEMENT>
                 } catch (SQLException e) {
                     throw new RuntimeException(e);
                 }
-                <RETURN_STATEMENT>
             }
             """;
-    /*
-    *                     var rest = (ResultSet) stmt.getObject(pos);
-                    while (rest.next()) {
-                        System.out.println(rest.getString(2));
-                    }*/
+
+    public static final String RESULT_SET_TEMPLATE = """
+            <INIT_LIST_STATEMENT>
+            try(ResultSet rs = (ResultSet)stmt.getObject(<POSITION>);){
+                <OBJECT_INIT_STATEMENT>
+                while(rs.next()){
+                    <SETTER_STATEMENTS:{statement |  <statement>
+                    }>
+                    <ADD_TO_LIST>
+                }
+            }""";
+
 }

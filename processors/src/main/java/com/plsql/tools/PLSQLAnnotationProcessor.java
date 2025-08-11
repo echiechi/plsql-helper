@@ -1,7 +1,6 @@
 package com.plsql.tools;
 
 import com.plsql.tools.annotations.Package;
-import com.plsql.tools.processors.PackageProcessor;
 import com.plsql.tools.tools.Tools;
 
 import javax.annotation.processing.*;
@@ -25,7 +24,8 @@ import java.util.Set;
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class PLSQLAnnotationProcessor extends AbstractProcessor {
-
+    // TODO: add record and test with records
+    // TODO : return of optional must be treated and added
     private Filer filer;
     private ProcessingContext context;
 
@@ -76,7 +76,7 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
         }
 
         try {
-            PackageProcessor processor = new PackageProcessor(context, packageClass, roundEnv);
+            EnclosingClassProcessor processor = new EnclosingClassProcessor(context, (TypeElement) packageClass, roundEnv);
             String generatedClass = processor.generateImplementation();
 
             if (generatedClass != null) {

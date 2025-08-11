@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 public @interface Procedure {
     String name() default "";
     String dataSource();
-    Class<?>[] outputs() default {};
+    Output[] outputs() default {};
 
     Class<?> input() default Object.class;
 }

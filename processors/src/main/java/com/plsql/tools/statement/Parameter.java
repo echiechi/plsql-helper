@@ -1,4 +1,4 @@
-package com.plsql.tools.sql;
+package com.plsql.tools.statement;
 
 import java.util.Objects;
 

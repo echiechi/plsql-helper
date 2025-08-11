@@ -1,16 +1,14 @@
 package com.plsql.tools.tools.fields;
 
 import com.plsql.tools.ProcessingContext;
-import com.plsql.tools.mapping.ObjectField;
 
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.plsql.tools.tools.ValidationUtils.isValidGetter;
+import static com.plsql.tools.tools.ValidationUtils.isValidSetter;
 
 public class FieldMethodMapper {
 
@@ -20,7 +18,7 @@ public class FieldMethodMapper {
         this.processingContext = processingContext;
     }
 
-    public FieldMappingResult extractFieldMethodMap(String paramName, TypeElement paramClass) {
+    public FieldMappingResult extractFields(String paramName, TypeElement paramClass) {
         if (paramName == null || paramName.trim().isEmpty()) {
             processingContext.logError("Parameter name cannot be null or empty");
             return FieldMappingResult.failure("Invalid parameter name");
@@ -31,19 +29,39 @@ public class FieldMethodMapper {
             return FieldMappingResult.failure("Invalid parameter class");
         }
 
-        Map<ObjectField, Element> fieldMethodMap = new LinkedHashMap<>();
+        Set<ExtractedField> fieldSet = new LinkedHashSet<>();
         List<String> warnings = new ArrayList<>();
 
         List<Element> fields = getFieldElements(paramClass);
-        List<Element> methods = getMethodElements(paramClass);
+        List<ExecutableElement> methods = getMethodElements(paramClass);
 
         for (Element field : fields) {
-            processField(paramName, field, methods, fieldMethodMap, warnings);
+            String fieldName = extractNameAsStr(field);
+            Optional<ExecutableElement> matchingGetter = findMatchingMethod(fieldName,
+                    methods,
+                    method -> isValidGetter(extractNameAsStr(method))
+            );
+            Optional<ExecutableElement> matchingSetter = findMatchingMethod(fieldName,
+                    methods,
+                    method -> isValidSetter(extractNameAsStr(method))
+            );
+            ExtractedField extractedField = null;
+            if (matchingGetter.isPresent()) {
+                extractedField = new ExtractedField(paramName, field, matchingGetter.get());
+            } else if (isModifierPresent(field, Modifier.PUBLIC)) {
+                extractedField = new ExtractedField(paramName, field);
+                warnings.add("Using direct field access for: " + fieldName + " (no getter found)");
+            } else {
+                warnings.add("Skipping private field without getter: " + fieldName);
+            }
+            if (extractedField != null && matchingSetter.isPresent()) {
+                extractedField.setSetter(matchingSetter.get());
+            }
+            fieldSet.add(extractedField);
         }
 
         warnings.forEach(processingContext::logWarning);
-
-        return FieldMappingResult.success(fieldMethodMap, warnings);
+        return FieldMappingResult.success(fieldSet, warnings);
     }
 
     private List<Element> getFieldElements(TypeElement paramClass) {
@@ -52,29 +70,16 @@ public class FieldMethodMapper {
                 .collect(Collectors.toList());
     }
 
-    private List<Element> getMethodElements(TypeElement paramClass) {
+    private List<ExecutableElement> getMethodElements(TypeElement paramClass) {
         return paramClass.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.METHOD)
+                .map(ExecutableElement.class::cast)
                 .collect(Collectors.toList());
     }
 
-    private void processField(String paramName, Element field, List<Element> methods,
-                              Map<ObjectField, Element> fieldMethodMap, List<String> warnings) {
-        String fieldName = extractNameAsStr(field);
-
-        Optional<Element> matchingGetter = findMatchingGetter(fieldName, methods);
-
-        if (matchingGetter.isPresent()) {
-            fieldMethodMap.put(new ObjectField(paramName, field), matchingGetter.get());
-        } else if (isModifierPresent(field, Modifier.PUBLIC)) {
-            fieldMethodMap.put(new ObjectField(paramName, field), null);
-            warnings.add("Using direct field access for: " + fieldName + " (no getter found)");
-        } else {
-            warnings.add("Skipping private field without getter: " + fieldName);
-        }
-    }
-
-    private Optional<Element> findMatchingGetter(String fieldName, List<Element> methods) {
+    private Optional<ExecutableElement> findMatchingMethod(String fieldName,
+                                                           List<ExecutableElement> methods,
+                                                           Predicate<ExecutableElement> check) {
         if (fieldName == null || fieldName.isEmpty()) {
             return Optional.empty();
         }
@@ -82,11 +87,12 @@ public class FieldMethodMapper {
         String lowerFieldName = fieldName.toLowerCase();
 
         return methods.stream()
-                .filter(method -> isValidGetter(extractNameAsStr(method)))
+                .filter(check)
                 .filter(method -> {
                     String methodName = extractNameAsStr(method).toLowerCase();
                     return methodName.endsWith(lowerFieldName);
                 })
+                .map(ExecutableElement.class::cast)
                 .findFirst();
     }
 

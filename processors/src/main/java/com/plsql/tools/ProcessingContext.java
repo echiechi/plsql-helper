@@ -3,6 +3,7 @@ package com.plsql.tools;
 import com.plsql.tools.tools.MessageUtils;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import java.util.Collection;
 
 public class ProcessingContext {
     private final ProcessingEnvironment processingEnv;
@@ -22,11 +23,11 @@ public class ProcessingContext {
     }
 
     public void logWarning(String message) {
-        processingEnv.getMessager().printMessage(
-                javax.tools.Diagnostic.Kind.WARNING, message
-        );
+        messageUtils.logWarning(message);
     }
-
+    public void logWarnings(Collection<String> messages) {
+        messages.forEach(messageUtils::logWarning);
+    }
     public ProcessingEnvironment getProcessingEnv() {
         return processingEnv;
     }

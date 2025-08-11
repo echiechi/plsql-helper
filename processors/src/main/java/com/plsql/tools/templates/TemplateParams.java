@@ -1,5 +1,7 @@
-package com.plsql.tools;
+package com.plsql.tools.templates;
 
+
+// TODO: DECOMPOSE TO MULTIPLE ENUMS
 public enum TemplateParams {
     PACKAGE_NAME,
     CLASS_NAME,
@@ -18,5 +20,8 @@ public enum TemplateParams {
     DATA_SOURCE,
     STATEMENT_POPULATION,
     REGISTER_OUT_PARAM,
-    INIT_POS
+    OUT_STATEMENTS,
+    INIT_POS,
+    RESULT_SET_EXTRACTION,
+    SUCCESS_RETURN
 }

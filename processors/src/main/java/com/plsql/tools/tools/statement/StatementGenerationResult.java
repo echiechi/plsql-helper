@@ -3,10 +3,12 @@ package com.plsql.tools.tools.statement;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO : remove results object and replace with exceptions here and there
 public class StatementGenerationResult {
     private final List<String> statements;
     private final List<String> warnings;
     private final List<String> errors;
+
     private final boolean success;
 
     private StatementGenerationResult(List<String> statements, List<String> warnings,
