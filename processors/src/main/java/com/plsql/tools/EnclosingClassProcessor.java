@@ -1,15 +1,13 @@
 package com.plsql.tools;
 
 import com.plsql.tools.annotations.Function;
-import com.plsql.tools.annotations.Package;
 import com.plsql.tools.annotations.Procedure;
-import com.plsql.tools.processors.ProcedureMethodGenerator;
+import com.plsql.tools.statement.generators.ProcedureMethodGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
 import com.plsql.tools.tools.Tools;
 import org.stringtemplate.v4.ST;
 
-import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -21,16 +19,12 @@ import java.util.Set;
 public class EnclosingClassProcessor {
     private final ProcessingContext context;
     private final TypeElement packageClass;
-    private final RoundEnvironment roundEnv;
-    private final Package packageAnnotation;
     private final List<String> generatedMethods;
     private final Set<String> processedMethods;
 
-    public EnclosingClassProcessor(ProcessingContext context, TypeElement packageClass, RoundEnvironment roundEnv) {
+    public EnclosingClassProcessor(ProcessingContext context, TypeElement packageClass) {
         this.context = context;
         this.packageClass = packageClass;
-        this.roundEnv = roundEnv;
-        this.packageAnnotation = packageClass.getAnnotation(Package.class);
         this.generatedMethods = new ArrayList<>();
         this.processedMethods = new HashSet<>();
     }
@@ -47,6 +41,7 @@ public class EnclosingClassProcessor {
                 .toList();
 
         for (ExecutableElement method : methods) {
+            context.logInfo("Generating implementation for:", method);
             processMethod(method);
         }
     }
@@ -55,7 +50,7 @@ public class EnclosingClassProcessor {
         String methodName = method.getSimpleName().toString();
 
         if (processedMethods.contains(methodName)) { // should not be possible ?
-            context.logWarning("Duplicate method name found: " + methodName);
+            context.logError("Duplicate method name found: " + methodName);
             return;
         }
 
@@ -75,11 +70,9 @@ public class EnclosingClassProcessor {
     }
 
     private String generateProcedureCall(ExecutableElement method) {
-        Procedure methodAnnotation = method.getAnnotation(Procedure.class);
-
         try {
             ProcedureMethodGenerator generator = new ProcedureMethodGenerator(
-                    context, roundEnv, method, packageAnnotation, methodAnnotation);
+                    context, packageClass, method);
             return generator.generate();
         } catch (Exception e) {
             context.logError("Failed to generate procedure call for " + method.getSimpleName() + ": " + e.getMessage());

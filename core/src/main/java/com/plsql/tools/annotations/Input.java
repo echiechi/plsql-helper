@@ -5,11 +5,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
+@Target({ElementType.PARAMETER, ElementType.FIELD})
 @Retention(RetentionPolicy.SOURCE)
-public @interface Procedure {
-    String name() default "";
-    String dataSource();
-    // Output[] outputs() default {};
+public @interface Input {
+    String value() default "";
 
+    boolean ignore() default false; // TODO : should I use it ?
 }

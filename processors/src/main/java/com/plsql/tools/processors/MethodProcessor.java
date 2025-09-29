@@ -1,120 +1,146 @@
 package com.plsql.tools.processors;
 
 import com.plsql.tools.ProcessingContext;
+import com.plsql.tools.annotations.Output;
 import com.plsql.tools.enums.JdbcHelper;
-import com.plsql.tools.tools.ElementFinder;
+import com.plsql.tools.tools.ElementTools;
 import com.plsql.tools.tools.Tools;
-import com.plsql.tools.tools.fields.ExtractedField;
-import com.plsql.tools.tools.fields.FieldMappingResult;
-import com.plsql.tools.tools.fields.FieldMethodMapper;
+import com.plsql.tools.tools.fields.FieldMethodExtractor;
+import com.plsql.tools.tools.fields.info.FieldInfo;
+import com.plsql.tools.tools.fields.info.ObjectInfo;
+import com.plsql.tools.tools.fields.info.VariableInfo;
 
-import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import static com.plsql.tools.tools.Tools.RETURN_NAME;
+import static com.plsql.tools.tools.Tools.getTypeElement;
 
 public class MethodProcessor {
     private final ProcessingContext context;
-    private final FieldMethodMapper extractor;
-    private final ElementFinder elementFinder;
+    private final FieldMethodExtractor extractor;
+    private final ElementTools elementTools;
 
-    public MethodProcessor(ProcessingContext context, RoundEnvironment roundEnv) {
+    public MethodProcessor(ProcessingContext context) {
         this.context = context;
-        this.extractor = new FieldMethodMapper(context);
-        this.elementFinder = new ElementFinder(roundEnv);
+        this.extractor = FieldMethodExtractor.getInstance(context);
+        this.elementTools = new ElementTools(context);
     }
+
 
     // TODO : handle no args and all args constructor
     // TODO : handle List stream and ResultSet ?
     public MethodProcessingResult process(ExecutableElement method) {
-        return new MethodProcessingResult(processParameters(method), processReturnType(method));
+        var parameters = processParameters(method);
+        return new MethodProcessingResult(parameters,
+                processReturn(method),
+                extractParamNames(parameters));
     }
 
-    // TODO : cache extracted parameters / classes
-    // TODO : enhance the method can only handle collections for now needs to change
-    // TODO : for now I should only focus on single OUT from procstock next I should focus on multiple OUT
-    private MethodProcessingResult.ReturnResult processReturnType(ExecutableElement method) {
-        context.logInfo("------------>" + method.getReturnType().toString());
+    private VariableInfo processReturn(ExecutableElement method) {
         String returnType = method.getReturnType().toString();
-        var returnResult = new MethodProcessingResult.ReturnResult();
         if (Tools.isVoid(returnType)) {
-            returnResult.setValid(true);
-            return returnResult;
+            return null;
         }
 
         var declaredType = (DeclaredType) method.getReturnType();
-        returnResult.addType(declaredType);
-        JdbcHelper simpleType = JdbcHelper.fromSimpleName(declaredType.asElement().toString());
-        if (simpleType != null && simpleType.isCollection()) {
-            context.logInfo("Processing collection");
-            Set<String> usedClasses = new HashSet<>();
-            if (simpleType == JdbcHelper.LIST || simpleType == JdbcHelper.SET) { // TODO : handle Collection type ?
-                ((DeclaredType) method.getReturnType()).getTypeArguments()
-                        .forEach(e -> {
-                            processClassFields(((DeclaredType) e).asElement(), e.toString(), usedClasses, returnResult.getByType(declaredType));
-                        });
-            }
-        } else if (simpleType != null && simpleType.isPrimitive()) {
-            context.logInfo("Processing simple type");
-        } else {
-            context.logInfo("Processing Object");
+
+        if (JdbcHelper.fromSimpleName(declaredType.asElement().toString()) != null) {
+            var returnVariable = new VariableInfo(declaredType.asElement());
+            var outputValue = method
+                    .getReturnType()
+                    .getAnnotationMirrors()
+                    .getFirst().getElementValues()
+                    .values()
+                    .iterator()
+                    .next()
+                    .getValue();
+            returnVariable.setOutput(elementTools.output(String.valueOf(outputValue)));
+            returnVariable.setCustomName(RETURN_NAME);
+            return returnVariable;
         }
-        context.logInfo("Return processing result : " + returnResult);
-        return returnResult;
+
+        var returnTypeElement = getTypeElement(context, declaredType.asElement());
+
+        if (declaredType.getTypeArguments().isEmpty()) {
+            validateOutputAnnotation(returnTypeElement);
+            return extractor.extractFields(RETURN_NAME, (TypeElement) declaredType.asElement());
+        } else if (elementTools.isSimpleWrapper(declaredType.asElement())) { // TODO: do special handling for Map
+            var argOpt = declaredType
+                    .getTypeArguments()
+                    .stream()
+                    .findFirst();
+            if (argOpt.isPresent()) {
+                var type = Tools.getTypeElement(context, argOpt.get());
+                validateOutputAnnotation(type);
+                var objectInfo = extractor.extractFields(RETURN_NAME, type);
+                objectInfo.setWrapper((TypeElement) declaredType.asElement());
+                return objectInfo;
+            }
+        }
+        return null;
     }
 
-    private MethodProcessingResult.ParameterResult processParameters(ExecutableElement method) {
-        List<String> parameters = new ArrayList<>();
-        Set<ExtractedField> extractedFields = new LinkedHashSet<>();
+    private void validateOutputAnnotation(TypeElement type) {
+        if (isTypeOutput(type) && isFieldOutput(type)) {
+            // throw new IllegalStateException("@Output can be placed only on the class or only on the class fields");
+        }
+    }
 
-        Set<String> usedClasses = new HashSet<>();
-        boolean isValid = true;
+    private boolean isTypeOutput(TypeElement typeElement) {
+        return typeElement != null && typeElement.getAnnotation(Output.class) != null;
+    }
 
+    private boolean isFieldOutput(TypeElement typeElement) {
+        return typeElement != null && extractor.extractClassInfo(typeElement)
+                .stream()
+                .anyMatch(fieldInfo -> fieldInfo.getField().getAnnotation(Output.class) != null);
+    }
+
+    private List<VariableInfo> processParameters(ExecutableElement method) {
+        List<VariableInfo> variableInfoList = new ArrayList<>();
         for (var parameter : method.getParameters()) {
-            String paramType = parameter.asType().toString();
-            String paramName = parameter.getSimpleName().toString();
-            parameters.add(String.format("%s %s", paramType, paramName));
+            var paramType = parameter.asType();
+            var paramName = parameter.getSimpleName().toString();
 
-            JdbcHelper type = JdbcHelper.fromSimpleName(paramType);
+            JdbcHelper type = JdbcHelper.fromSimpleName(paramType.toString());
             if (type != null) {
                 // Simple parameter
-                extractedFields.add(new ExtractedField("", parameter));
+                variableInfoList.add(new VariableInfo(parameter));
             } else {
-                if (!processClassFields(parameter, paramType, usedClasses, extractedFields)) {
-                    isValid = false;
-                } else {
-                    usedClasses.add(paramType);
-                }
+                TypeElement typeElement = (TypeElement) context.getProcessingEnv().getTypeUtils().asElement(paramType);
+                variableInfoList.add(extractor.extractFields(paramName, typeElement));
             }
         }
-        var parameterResult = new MethodProcessingResult.ParameterResult(parameters, extractedFields);
-        parameterResult.setValid(isValid); // TODO : remove is valid ?
-        return parameterResult;
+        return variableInfoList;
     }
 
-    private boolean processClassFields(Element parameter, String paramType,
-                                       Set<String> usedClasses, Set<ExtractedField> extractedSet) {
-        if (usedClasses.contains(paramType)) {
-            context.logError("Duplicate input type detected: " + paramType);
-            return false;
+    private List<String> extractParamNames(List<VariableInfo> variableInfoList) {
+        List<String> params = new ArrayList<>();
+        for (var variableInfo : variableInfoList) {
+            if (variableInfo.isSimple()) {
+                params.add(variableInfo.inputName());
+            } else {
+                var objectInfo = (ObjectInfo) variableInfo;
+                extractNestedFields(objectInfo, objectInfo.getFieldInfoSet(), params);
+            }
         }
+        return params;
+    }
 
-        TypeElement paramClass = elementFinder.findElementByName(paramType).orElse(null);
-        if (paramClass == null) {
-            context.logError("Cannot find parameter class: " + paramType);
-            return false;
+    private void extractNestedFields(ObjectInfo objectInfo, Set<FieldInfo> fieldInfoSet, List<String> params) {
+        for (var parentField : fieldInfoSet) {
+            if (parentField.isSimple()) {
+                params.add(parentField.inputName());
+            } else {
+                TypeElement typeElement = getTypeElement(context, parentField.getField());
+                var nestedFields = objectInfo.getNestedObjects().get(typeElement);
+                extractNestedFields(objectInfo, nestedFields, params);
+            }
         }
-        FieldMappingResult fieldMappingResult = extractor
-                .extractFields(parameter.getSimpleName().toString(), paramClass);
-        if (fieldMappingResult.isSuccess()) {
-            context.logWarnings(fieldMappingResult.getWarnings());
-            extractedSet.addAll(fieldMappingResult.getFieldMethodMap());
-        } else {
-            context.logError(fieldMappingResult.getErrorMessage());
-            return false;
-        }
-        return true;
     }
 }

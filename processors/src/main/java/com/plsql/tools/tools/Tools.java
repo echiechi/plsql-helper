@@ -1,10 +1,12 @@
 package com.plsql.tools.tools;
 
+import com.plsql.tools.ProcessingContext;
 import com.plsql.tools.annotations.Output;
 import com.plsql.tools.enums.JdbcHelper;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
  * and better error handling.
  */
 public class Tools {
+
+    public static final String RETURN_NAME = "result";
 
     /**
      * Safely extracts package name from a TypeElement with validation
@@ -90,9 +94,9 @@ public class Tools {
         return "void".equals(returnType.trim());
     }
 
-    public static String getType(Output annotation) {
+    public static String getType(Output annotation) { // TODO : FIX RELATED METHOD
         try {
-            annotation.type(); // this should throw
+            //    annotation.type(); // this should throw
         } catch (MirroredTypeException e) {
             return String.valueOf(e.getTypeMirror());
         }
@@ -109,5 +113,13 @@ public class Tools {
             return "java.util.HashSet<>()";
         }
         return null;
+    }
+
+    public static TypeElement getTypeElement(ProcessingContext context, Element element) {
+        return getTypeElement(context, element.asType());
+    }
+
+    public static TypeElement getTypeElement(ProcessingContext context, TypeMirror type) {
+        return (TypeElement) context.getProcessingEnv().getTypeUtils().asElement(type);
     }
 }

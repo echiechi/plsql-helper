@@ -1,6 +1,8 @@
 package com.plsql.tools;
 
 import com.plsql.tools.annotations.Package;
+import com.plsql.tools.annotations.Record;
+import com.plsql.tools.processors.RecordProcessor;
 import com.plsql.tools.tools.Tools;
 
 import javax.annotation.processing.*;
@@ -12,29 +14,38 @@ import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Improved version of PLSQLAnnotationProcessor with better error handling,
  * separation of concerns, and enhanced validation.
  */
 @SupportedAnnotationTypes({
-        "com.plsql.tools.annotations.PLSQLService",
+        "com.plsql.tools.annotations.Package",
         "com.plsql.tools.annotations.Procedure",
-        "com.plsql.tools.annotations.Function"
+        "com.plsql.tools.annotations.Function",
+        "com.plsql.tools.annotations.Record"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class PLSQLAnnotationProcessor extends AbstractProcessor {
-    // TODO: add record and test with records
+    // TODO : add record and test with records
     // TODO : return of optional must be treated and added
+    // TODO : create a cache also of templates => new Obj() obj.setName(rs.getString("colName")); ....
+    // TODO : Potential recursion problem fix no nested classes of the same type
+    // TODO : handle ARRAY AND STRUCT
+    // TODO : handle primitive type as return : throw exception and error message ?
+    // TODO : handle overload of methods: for now its disabled
     private Filer filer;
     private ProcessingContext context;
+    private RecordProcessor recordProcessor;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         this.filer = processingEnv.getFiler();
-        this.context = new ProcessingContext(processingEnv);
-        context.logInfo("PL/SQL Annotation Processor (Improved) initialized");
+        this.context = new ProcessingContext(processingEnv, Boolean.parseBoolean(System.getProperty("debug")));
+        this.recordProcessor = new RecordProcessor(context);
+        context.logInfoDeco("PL/SQL Annotation Processor initialized");
     }
 
     @Override
@@ -46,6 +57,12 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
         context.logInfo("PL/SQL Started Processing");
 
         try {
+            context.logInfo("Start processing classes annotated with Record.class");
+            var recordElements = roundEnv.getElementsAnnotatedWith(Record.class);
+            context.logInfo("**Classes Found**", recordElements.stream().map(Element::getSimpleName).collect(Collectors.joining(" | ")));
+            for (var record : recordElements) {
+                this.recordProcessor.process(record);
+            }
             return processPackageClasses(roundEnv);
         } catch (Exception e) {
             context.logError("Fatal error during processing: " + e.getMessage());
@@ -56,6 +73,7 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
     private boolean processPackageClasses(RoundEnvironment roundEnv) {
         Set<? extends Element> packageClasses = roundEnv.getElementsAnnotatedWith(Package.class);
 
+        context.logInfoDeco("Generating Implementation for Package annotated abstract classes");
         if (packageClasses.isEmpty()) {
             context.logInfo("No @Package annotated classes found");
             return true;
@@ -76,7 +94,8 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
         }
 
         try {
-            EnclosingClassProcessor processor = new EnclosingClassProcessor(context, (TypeElement) packageClass, roundEnv);
+            EnclosingClassProcessor processor = new EnclosingClassProcessor(context, (TypeElement) packageClass);
+
             String generatedClass = processor.generateImplementation();
 
             if (generatedClass != null) {

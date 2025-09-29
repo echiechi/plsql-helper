@@ -18,6 +18,12 @@ public class MessageUtils {
         }
     }
 
+    public void logDebug(String message) {
+        if (message != null && !message.trim().isEmpty()) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.OTHER, message);
+        }
+    }
+
     public void logWarning(String message) {
         if (message != null && !message.trim().isEmpty()) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, message);

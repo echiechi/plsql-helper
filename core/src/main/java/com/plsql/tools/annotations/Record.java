@@ -5,10 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target({ElementType.PARAMETER, ElementType.FIELD})
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface Param {
-    String value() default "";
-
-    boolean ignore() default false; // TODO : should I use it ?
+public @interface Record {
 }

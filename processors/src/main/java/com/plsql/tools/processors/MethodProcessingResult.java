@@ -1,99 +1,32 @@
 package com.plsql.tools.processors;
 
-import com.plsql.tools.tools.fields.ExtractedField;
+import com.plsql.tools.tools.fields.info.VariableInfo;
 
-import javax.lang.model.type.DeclaredType;
-import java.util.*;
+import java.util.List;
 
 public class MethodProcessingResult {
-    public static class ParameterResult {
-        private final List<String> parameters;
-        private final Set<ExtractedField> extractedFields;
-        private boolean isValid = true;
+    private final List<VariableInfo> parameterInfo;
+    private final VariableInfo returnResult;
 
-        public ParameterResult(List<String> parameters, Set<ExtractedField> extractedFields) {
-            this.parameters = parameters;
-            this.extractedFields = extractedFields;
-        }
+    private final List<String> parameterNames;
 
-        public List<String> getParameters() {
-            return parameters;
-        }
-
-        public Set<ExtractedField> getExtractedFields() {
-            return extractedFields;
-        }
-
-        public void setValid(boolean valid) {
-            isValid = valid;
-        }
-
-        @Override
-        public String toString() {
-            return "ParameterResult{" +
-                    "parameters=" + parameters +
-                    ", extractedFields=" + extractedFields +
-                    ", isValid=" + isValid +
-                    '}';
-        }
-    }
-
-    public static class ReturnResult {
-        private final Map<DeclaredType, Set<ExtractedField>> extractedReturnFields;
-        private boolean isValid = true;
-
-        public ReturnResult() {
-            this.extractedReturnFields = new LinkedHashMap<>();
-        }
-
-        public void addType(DeclaredType type) {
-            extractedReturnFields.put(type, new LinkedHashSet<>());
-        }
-        public Set<ExtractedField> getByType(DeclaredType type) {
-            return extractedReturnFields.get(type);
-        }
-        
-        public void setValid(boolean valid) {
-            isValid = valid;
-        }
-
-        public Map<DeclaredType, Set<ExtractedField>> getExtractedReturnFields() {
-            return extractedReturnFields;
-        }
-        @Override
-        public String toString() {
-            return "ReturnResult{" +
-                    "extractedReturnFields=" + extractedReturnFields +
-                    ", isValid=" + isValid +
-                    '}';
-        }
-    }
-
-    private final ParameterResult parameterResult;
-    private final ReturnResult returnResult;
-
-    public MethodProcessingResult(ParameterResult parameterResult, ReturnResult returnResult) {
-        this.parameterResult = parameterResult;
+    public MethodProcessingResult(List<VariableInfo> parameterInfo,
+                                  VariableInfo returnResult,
+                                  List<String> parameterNames) {
+        this.parameterInfo = parameterInfo;
         this.returnResult = returnResult;
+        this.parameterNames = parameterNames;
     }
 
-    public List<String> getParameters() {
-        return parameterResult.getParameters();
+    public List<VariableInfo> getParameterInfo() {
+        return parameterInfo;
     }
 
-    public Set<ExtractedField> getMethodParameters() {
-        return parameterResult.getExtractedFields();
-    }
-
-    public Map<DeclaredType, Set<ExtractedField>> getMethodReturns() {
-        return returnResult.extractedReturnFields;
-    }
-
-    public ReturnResult getReturnResult() {
+    public VariableInfo getReturnResult() {
         return returnResult;
     }
 
-    public boolean isValid() {
-        return returnResult.isValid && parameterResult.isValid;
+    public List<String> getParameterNames() {
+        return parameterNames;
     }
 }

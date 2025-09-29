@@ -49,7 +49,6 @@ public class Templates {
                     }>
                     <REGISTER_OUT_PARAM>
                     stmt.execute();
-                    <OUT_STATEMENTS>
                     <RESULT_SET_EXTRACTION>
                     <RETURN_STATEMENT>
                 } catch (SQLException e) {

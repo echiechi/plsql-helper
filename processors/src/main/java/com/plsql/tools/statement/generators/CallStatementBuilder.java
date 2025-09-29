@@ -1,22 +1,23 @@
-package com.plsql.tools.statement;
+package com.plsql.tools.statement.generators;
 
+import com.plsql.tools.statement.Parameter;
+import com.plsql.tools.statement.ParameterType;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
+import com.plsql.tools.utils.CaseConverter;
 import org.stringtemplate.v4.ST;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ProcedureExecutionStatement {
+public class CallStatementBuilder {
     private final String packageName;
     private final String procedureName;
-    private final String procedureCallName;
     private final List<Parameter> parameters;
 
-    public ProcedureExecutionStatement(String packageName, String procedureName, String procedureCallName) {
+    public CallStatementBuilder(String packageName, String procedureName) {
         this.packageName = packageName;
         this.procedureName = procedureName;
-        this.procedureCallName = procedureCallName;
         this.parameters = new ArrayList<>();
     }
 
@@ -26,7 +27,7 @@ public class ProcedureExecutionStatement {
 
     public void withParameter(String parameterName, ParameterType type) {
         if (parameterName != null && !parameterName.trim().isEmpty()) {
-            parameters.add(new Parameter(parameterName.trim(), type));
+            parameters.add(new Parameter(CaseConverter.toSnakeCase(parameterName.trim()), type));
         }
     }
 
@@ -45,8 +46,7 @@ public class ProcedureExecutionStatement {
 
         templateBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(),
                 formatProcedureFullName());
-        templateBuilder.add(TemplateParams.PROCEDURE_CALL_NAME.name(),
-                getEffectiveProcedureCallName());
+        templateBuilder.add(TemplateParams.PROCEDURE_CALL_NAME.name(), procedureName);
         templateBuilder.add(TemplateParams.PROCEDURE_PARAMETERS.name(),
                 formatParameters());
         templateBuilder.add(TemplateParams.PACKAGE_CALL_NAME.name(),
@@ -56,11 +56,7 @@ public class ProcedureExecutionStatement {
     }
 
     private String formatProcedureFullName() {
-        return procedureName.replace(".", "_");
-    }
-
-    private String getEffectiveProcedureCallName() {
-        return !procedureCallName.isEmpty() ? procedureCallName : procedureName;
+        return String.format("%s_%s", packageName, procedureName);
     }
 
     private String formatParameters() {
@@ -77,7 +73,6 @@ public class ProcedureExecutionStatement {
         Map<String, Object> info = new HashMap<>();
         info.put("packageName", packageName);
         info.put("procedureName", procedureName);
-        info.put("procedureCallName", procedureCallName);
         info.put("parameterCount", parameters.size());
         info.put("parameters", parameters.stream().map(Parameter::getName).collect(Collectors.toList()));
         return info;
@@ -87,21 +82,20 @@ public class ProcedureExecutionStatement {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ProcedureExecutionStatement that = (ProcedureExecutionStatement) o;
+        CallStatementBuilder that = (CallStatementBuilder) o;
         return Objects.equals(packageName, that.packageName) &&
                 Objects.equals(procedureName, that.procedureName) &&
-                Objects.equals(procedureCallName, that.procedureCallName) &&
                 Objects.equals(parameters, that.parameters);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(packageName, procedureName, procedureCallName, parameters);
+        return Objects.hash(packageName, procedureName, parameters);
     }
 
     @Override
     public String toString() {
-        return String.format("ProcedureExecutionStatement{packageName='%s', procedureName='%s', procedureCallName='%s', parameters=%s }",
-                packageName, procedureName, procedureCallName, parameters);
+        return String.format("CallStatementBuilder{packageName='%s', procedureName='%s', parameters=%s }",
+                packageName, procedureName, parameters);
     }
 }
