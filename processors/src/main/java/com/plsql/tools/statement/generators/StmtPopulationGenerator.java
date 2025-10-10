@@ -17,8 +17,15 @@ public class StmtPopulationGenerator {
 
     private final ProcessingContext context;
 
+    private boolean isPreIncrement;
+
     public StmtPopulationGenerator(ProcessingContext context) {
         this.context = context;
+    }
+
+    public StmtPopulationGenerator(ProcessingContext context, boolean isPreIncrement) {
+        this.context = context;
+        this.isPreIncrement = isPreIncrement;
     }
 
     public List<String> generateStatements(List<VariableInfo> variableInfoList) {
@@ -40,7 +47,8 @@ public class StmtPopulationGenerator {
         } else if (variableInfo.getJdbcMappedType() == JdbcHelper.CHARACTER) {
             variableName = String.format("String.valueOf(%s)", variableInfo.getName());
         }
-        return String.format("stmt.%s(pos++, %s);", variableInfo.getJdbcMappedType().getJdbcSetterMethod(),
+        return String.format("stmt.%s(%s, %s);", variableInfo.getJdbcMappedType().getJdbcSetterMethod(),
+                isPreIncrement ? "++pos" : "pos++",
                 variableName);
     }
 
@@ -50,11 +58,16 @@ public class StmtPopulationGenerator {
             if (field.isSimple()) {
                 statements.add(objectFieldStatement(objectInfo.getObjectName(), field));
             } else {
-                Map<String, FieldInfo> getters = new LinkedHashMap<>();
+                Map<String, List<FieldInfo>> getters = new LinkedHashMap<>();
                 flattenObjectInfo(objectInfo, field, getters, "");
-                getters.forEach((g, f) -> {
-                    statements.add(objectFieldStatement(objectInfo.getObjectName() + "." + g, f));
-                });
+                context.logInfoDeco(getters);
+                for (var entry : getters.entrySet()) {
+                    String firstGetter = entry.getKey();
+                    List<FieldInfo> fields = entry.getValue();
+                    for (FieldInfo fieldInfo : fields) {
+                        statements.add(objectFieldStatement(objectInfo.getObjectName() + "." + firstGetter, fieldInfo));
+                    }
+                }
             }
         }
         return statements;
@@ -73,7 +86,9 @@ public class StmtPopulationGenerator {
         } else if (info.getJdbcMappedType() == JdbcHelper.CHARACTER) {
             finalVariableGetter = String.format("String.valueOf(%s)", variableGetter);
         }
-        return String.format("stmt.%s(pos++, %s);", info.getJdbcMappedType().getJdbcSetterMethod(),
+        return String.format("stmt.%s(%s, %s);",
+                info.getJdbcMappedType().getJdbcSetterMethod(),
+                isPreIncrement ? "++pos" : "pos++",
                 finalVariableGetter);
     }
 
@@ -92,7 +107,7 @@ public class StmtPopulationGenerator {
         };
     }
 
-    private void flattenObjectInfo(ObjectInfo objectInfo, FieldInfo fieldInfo, Map<String, FieldInfo> list, String currentGetter) {
+    private void flattenObjectInfo(ObjectInfo objectInfo, FieldInfo fieldInfo, Map<String, List<FieldInfo>> list, String currentGetter) {
         var getter = fieldInfo.getGetter().toString();
         TypeElement typeElement = Tools.getTypeElement(context, fieldInfo.getField());
         var fieldInfoSet = objectInfo.getNestedObjects().get(typeElement);
@@ -100,7 +115,14 @@ public class StmtPopulationGenerator {
         if (fieldInfoSet != null) {
             for (var field : fieldInfoSet) {
                 if (field.isSimple()) {
-                    list.put(currentGetter.substring(0, currentGetter.length() - 1), field);
+                    var getterName = currentGetter.substring(0, currentGetter.length() - 1);
+                    if (list.containsKey(getterName)) {
+                        list.get(getterName).add(field);
+                    } else {
+                        var fields = new ArrayList<FieldInfo>();
+                        fields.add(field);
+                        list.put(getterName, fields);
+                    }
                 } else {
                     flattenObjectInfo(objectInfo, field, list, currentGetter);
                 }

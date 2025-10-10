@@ -32,9 +32,8 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
     // TODO : return of optional must be treated and added
     // TODO : create a cache also of templates => new Obj() obj.setName(rs.getString("colName")); ....
     // TODO : Potential recursion problem fix no nested classes of the same type
-    // TODO : handle ARRAY AND STRUCT
     // TODO : handle primitive type as return : throw exception and error message ?
-    // TODO : handle overload of methods: for now its disabled
+    // TODO : handle overload of methods: for now its disabled and proc/function reuse in same package
     private Filer filer;
     private ProcessingContext context;
     private RecordProcessor recordProcessor;

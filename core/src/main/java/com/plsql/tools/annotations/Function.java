@@ -12,8 +12,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 public @interface Function {
     String name() default "";
-
-    Class<?>[] inputs() default {};
-
-    Class<?>[] output() default Integer.class;
+    String dataSource();
 }

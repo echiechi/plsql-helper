@@ -1,10 +1,11 @@
 package com.plsql.tools.statement.generators;
 
 import com.plsql.tools.ProcessingContext;
+import com.plsql.tools.annotations.Function;
 import com.plsql.tools.annotations.Package;
-import com.plsql.tools.annotations.Procedure;
 import com.plsql.tools.processors.MethodProcessingResult;
 import com.plsql.tools.processors.MethodProcessor;
+import com.plsql.tools.statement.ParameterType;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
 import com.plsql.tools.tools.ElementTools;
@@ -18,51 +19,48 @@ import java.util.stream.Collectors;
 
 import static com.plsql.tools.tools.Tools.*;
 
-public class ProcedureMethodGenerator {
+public class FunctionMethodGenerator { // TODO : can add interface for procedure/function call
     private final ProcessingContext context;
     private final TypeElement packageClass;
     private final ExecutableElement method;
     private final MethodProcessor methodProcessor;
     private final ElementTools elementTools;
 
-    public ProcedureMethodGenerator(ProcessingContext context,
-                                    TypeElement packageClass,
-                                    ExecutableElement method) {
+    public FunctionMethodGenerator(ProcessingContext context, TypeElement packageClass, ExecutableElement method) {
         this.context = context;
-        this.method = method;
         this.packageClass = packageClass;
+        this.method = method;
         this.methodProcessor = new MethodProcessor(context);
         this.elementTools = new ElementTools(context);
     }
 
-    // TODO : working example
     public String generate() {
         MethodProcessingResult result = methodProcessor.process(method);
         Package packageAnnotation = packageClass.getAnnotation(Package.class);
-        Procedure procedureAnnotation = method.getAnnotation(Procedure.class);
+        Function functionAnnotation = method.getAnnotation(Function.class);
 
         var packageName = StringUtils.isBlank(packageAnnotation.name()) ?
                 CaseConverter.toSnakeCase(packageClass.getSimpleName().toString()) :
                 packageAnnotation.name();
-        var procedureName = StringUtils.isBlank(procedureAnnotation.name()) ?
+        var procedureName = StringUtils.isBlank(functionAnnotation.name()) ?
                 CaseConverter.toSnakeCase(method.getSimpleName().toString()) :
-                procedureAnnotation.name();
+                functionAnnotation.name();
 
-        context.logInfo("Extract procedure outputs", result.getReturnResult());
-        var outputs = elementTools.extractOutputs(result.getReturnResult());
+        context.logInfo("Extract procedure outputs", result.getReturnResult()); // TODO : check output can't be void
+        var outputs = elementTools.extractOutputs(result.getReturnResult()); // TODO: check output in function should be only one no multiple Outputs
         context.logDebug("Outputs:", outputs.stream().map(String::valueOf).collect(Collectors.joining("|")));
 
         context.logInfo("Generate JDBC call");
-        var procedureCall = new ProcedureCallGenerator(
+        var functionCallGenerator = new FunctionCallGenerator(
                 packageName,
                 procedureName);
-        result.getParameterNames().forEach(procedureCall::withParameter);
-        outputs.forEach(o -> procedureCall.withParameter(o.output.value()));
-        var procedureCallStatement = procedureCall.build();
-        context.logDebug("Procedure call:", procedureCallStatement);
+        result.getParameterNames().forEach(functionCallGenerator::withParameter);
+        // outputs.forEach(o -> functionCallGenerator.withParameter(o.output.value()));
+        var functionCall = functionCallGenerator.build();
+        context.logDebug("Procedure call:", functionCall);
 
         context.logInfo("Generate Statement population from class parameters");
-        var stmtPopulationBuilder = new StmtPopulationGenerator(context);
+        var stmtPopulationBuilder = new StmtPopulationGenerator(context, true);
         var populationStatements = String.join("\n", stmtPopulationBuilder.generateStatements(result.getParameterInfo()));
         context.logDebug("Statement population:", populationStatements);
 
@@ -83,7 +81,7 @@ public class ProcedureMethodGenerator {
             extractedOutputs = "";
         } else {
             // set first position :
-            outputs.getFirst().pos = "pos";
+            outputs.getFirst().pos = "1";
             var outputGeneration = new OutputPopulationGenerator(context, outputs);
             extractedOutputs = String.join("\n",
                     outputGeneration.generateStatements(result.getReturnResult()));
@@ -91,12 +89,12 @@ public class ProcedureMethodGenerator {
         context.logDebug("Extracting outputs from statement:", extractedOutputs);
 
         context.logInfo("Build method template...");
-        return buildMethodTemplate(procedureCallStatement,
+        return buildMethodTemplate(functionCall,
                 method.getReturnType().toString(),
                 method.getSimpleName().toString(),
                 method.getParameters().stream().map(v -> String.format("%s %s", v.asType(), v.getSimpleName()))
                         .collect(Collectors.joining(", ")),
-                procedureAnnotation.dataSource(),
+                functionAnnotation.dataSource(),
                 String.format("%s_%s", packageName, procedureName),
                 populationStatements,
                 registeredOutParameters,
@@ -114,7 +112,7 @@ public class ProcedureMethodGenerator {
             String populationStatements,
             String registeredOutParameters,
             String resultSetsExtractionStatements) {
-        ST templateBuilder = new ST(Templates.PROCEDURE_METHOD_TEMPLATE);
+        ST templateBuilder = new ST(Templates.FUNCTION_METHOD_TEMPLATE);
         templateBuilder.add(TemplateParams.STATEMENT_STATIC_CALL.name(), procedureCall);
 
         templateBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);

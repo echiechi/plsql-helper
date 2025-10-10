@@ -2,13 +2,12 @@ package com.plsql.tools.example.customer;
 
 import com.plsql.tools.DataSourceAware;
 import com.plsql.tools.DataSourceProvider;
-import com.plsql.tools.annotations.Input;
-import com.plsql.tools.annotations.Output;
 import com.plsql.tools.annotations.Package;
-import com.plsql.tools.annotations.Procedure;
+import com.plsql.tools.annotations.*;
 import com.plsql.tools.example.DataSources;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Package(name = "pkg_customer_management")
 public abstract class CustomerService extends DataSourceAware {
@@ -53,16 +52,40 @@ public abstract class CustomerService extends DataSourceAware {
 
 
     @Procedure(name = "get_customer_by_id", dataSource = DataSources.MY_DS)
-    public abstract CustomerGet getCustomerById(@Input("p_customer_id") long id);
+    public abstract @Output("p_customer_data") CustomerGet getCustomerById(@Input("p_customer_id") long id);
 
     @Procedure(name = "get_customers_by_criteria", dataSource = DataSources.MY_DS)
-    public abstract @Output("p_customer_cursor") CustomerGet getCustomerByCrit(@Input("p_last_name")
-                                                                               String lastName,
-                                                                               @Input("p_email")
-                                                                               String email,
-                                                                               @Input("p_city")
-                                                                               String city,
-                                                                               @Input("p_is_active")
-                                                                               char isActive);
+    public abstract @Output(value = "p_customer_cursor", field = "test") CustomerGet getCustomerByCrit(@Input("p_last_name")
+                                                                                                       String lastName,
+                                                                                                       @Input("p_email")
+                                                                                                       String email,
+                                                                                                       @Input("p_city")
+                                                                                                       String city,
+                                                                                                       @Input("p_is_active")
+                                                                                                       char isActive);
+
+    @Procedure(name = "get_all_customers", dataSource = DataSources.MY_DS)
+    @MultiOutput(outputs = {
+            @Output(value = "p_customer_cursor", field = "customerGets"),
+            @Output(value = "p_total_count", field = "customerTotal")})
+    public abstract CustomerMulti getAllCustomers(@Input("p_page_size")
+                                                  int pageSize,
+                                                  @Input("p_page_number")
+                                                  int pageNumber);
+
+    @Procedure(name = "update_customer", dataSource = DataSources.MY_DS)
+    public abstract void updateCustomer(
+            @Input("p_customer_id") long id,
+            @Input("p_first_name") String firstName,
+            @Input("p_last_name") String lastName,
+            @Input("p_email") String email,
+            @Input("p_phone") String phone,
+            @Input("p_is_active") char isActive,
+            @Input("p_is_premium") char isPremium,
+            @Input("p_last_login") LocalDateTime lastLogin
+    );
+
+    @Function(name = "get_customer_full_name", dataSource = DataSources.MY_DS)
+    public abstract @Output("customer_full_name") String getCustomerFullName(@Input("p_customer_id") long id);
 
 }

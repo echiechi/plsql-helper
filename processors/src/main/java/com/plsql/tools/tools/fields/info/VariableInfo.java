@@ -6,13 +6,14 @@ import com.plsql.tools.enums.JdbcHelper;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.lang.model.element.Element;
+import java.util.List;
 
 public class VariableInfo implements Info {
     protected Element field;
 
     private String customName;
 
-    private Output output;
+    private List<Output> outputs;
 
     public VariableInfo(Element field) {
         this.field = field;
@@ -58,11 +59,11 @@ public class VariableInfo implements Info {
         Input input = field.getAnnotation(Input.class);
         return input != null && StringUtils.isNotBlank(input.value()) ? input.value() : getName();
     }
-    public Output getOutput() {
-        return output;
+    public List<Output> getOutputs() {
+        return outputs;
     }
-    public void setOutput(Output output) {
-        this.output = output;
+    public void setOutputs(List<Output> outputs) {
+        this.outputs = outputs;
     }
 
     @Override
@@ -70,7 +71,7 @@ public class VariableInfo implements Info {
         return "VariableInfo{" +
                 "field=" + field +
                 ", customName='" + customName + '\'' +
-                ", output=" + output +
+                ", output=" + outputs +
                 '}';
     }
 }

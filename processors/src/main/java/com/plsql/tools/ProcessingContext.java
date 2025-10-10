@@ -73,11 +73,9 @@ public class ProcessingContext {
     }
 
     public void logDebug(Object... messages) {
-        if (isDebugEnabled) {
-            messageUtils.logDebug(Arrays.stream(messages)
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(" ")));
-        }
+        logDebug(Arrays.stream(messages)
+                .map(String::valueOf)
+                .collect(Collectors.joining(" ")));
     }
 
     public ProcessingEnvironment getProcessingEnv() {

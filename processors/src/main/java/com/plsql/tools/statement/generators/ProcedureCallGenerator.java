@@ -3,19 +3,21 @@ package com.plsql.tools.statement.generators;
 import com.plsql.tools.statement.Parameter;
 import com.plsql.tools.statement.ParameterType;
 import com.plsql.tools.templates.TemplateParams;
-import com.plsql.tools.templates.Templates;
 import com.plsql.tools.utils.CaseConverter;
 import org.stringtemplate.v4.ST;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class CallStatementBuilder {
+public class ProcedureCallGenerator {
+    public static final String PROCEDURE_CALL_TEMPLATE = """
+            public static final String <PROCEDURE_FULL_NAME> = "{ call <PACKAGE_CALL_NAME><PROCEDURE_CALL_NAME>(<PROCEDURE_PARAMETERS>) }";
+            """;
     private final String packageName;
     private final String procedureName;
     private final List<Parameter> parameters;
 
-    public CallStatementBuilder(String packageName, String procedureName) {
+    public ProcedureCallGenerator(String packageName, String procedureName) {
         this.packageName = packageName;
         this.procedureName = procedureName;
         this.parameters = new ArrayList<>();
@@ -42,7 +44,7 @@ public class CallStatementBuilder {
      * Builds the statement using StringTemplate
      */
     private String buildWithTemplate() {
-        ST templateBuilder = new ST(Templates.PROCEDURE_CALL_TEMPLATE);
+        ST templateBuilder = new ST(PROCEDURE_CALL_TEMPLATE);
 
         templateBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(),
                 formatProcedureFullName());
@@ -82,7 +84,7 @@ public class CallStatementBuilder {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        CallStatementBuilder that = (CallStatementBuilder) o;
+        ProcedureCallGenerator that = (ProcedureCallGenerator) o;
         return Objects.equals(packageName, that.packageName) &&
                 Objects.equals(procedureName, that.procedureName) &&
                 Objects.equals(parameters, that.parameters);
@@ -95,7 +97,7 @@ public class CallStatementBuilder {
 
     @Override
     public String toString() {
-        return String.format("CallStatementBuilder{packageName='%s', procedureName='%s', parameters=%s }",
+        return String.format("ProcedureCallGenerator{packageName='%s', procedureName='%s', parameters=%s }",
                 packageName, procedureName, parameters);
     }
 }

@@ -27,10 +27,12 @@ public class OutRegistrationGenerator {
             if (i == outputs.size() - 1) {
                 pos = "pos";
             }
-            var type = JdbcHelper.fromSimpleName(Tools.getTypeElement(context, output.element).toString());
-
-            if(output.isWrapped()){
-             type = JdbcHelper.fromSimpleName(output.wrappedType.toString());
+            var type = JdbcHelper.fromSimpleName(output.element.asType().toString());
+            if (type == null) {
+                type = JdbcHelper.fromSimpleName(Tools.getTypeElement(context, output.element).toString());
+            }
+            if (output.isWrapped()) {
+                type = JdbcHelper.fromSimpleName(output.wrappedType.toString());
             }
             statements.add(String.format("stmt.registerOutParameter(%s, JDBCType.%s);", pos, (type == null) ?
                     JDBCType.REF_CURSOR.name() : type.getJdbcType().name()));

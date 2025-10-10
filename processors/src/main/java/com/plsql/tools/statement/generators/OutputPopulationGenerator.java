@@ -1,7 +1,6 @@
 package com.plsql.tools.statement.generators;
 
 import com.plsql.tools.ProcessingContext;
-import com.plsql.tools.annotations.Output;
 import com.plsql.tools.enums.JdbcHelper;
 import com.plsql.tools.tools.ElementTools;
 import com.plsql.tools.tools.fields.FieldMethodExtractor;
@@ -79,8 +78,11 @@ public class OutputPopulationGenerator {
 
     private final FieldMethodExtractor extractor;
 
-    public OutputPopulationGenerator(ProcessingContext context) {
+    private final List<OutputElement> outputs;
+
+    public OutputPopulationGenerator(ProcessingContext context, List<OutputElement> outputs) {
         this.context = context;
+        this.outputs = outputs;
         this.elementTools = new ElementTools(context);
         this.extractor = FieldMethodExtractor.getInstance(context);
     }
@@ -91,10 +93,8 @@ public class OutputPopulationGenerator {
         }
         List<String> statements = new ArrayList<>();
         if (variableInfo.isSimple()) {
-            var output = new OutputElement(
-                    variableInfo.getOutput(),
-                    variableInfo.getField());
-            output.pos = "pos";
+            var output = outputs.getFirst();
+            // output.pos = "pos";
             statements.add(handleOneVariableOutput(variableInfo, output));
         } else {
             var objectInfo = (ObjectInfo) variableInfo;
@@ -104,19 +104,25 @@ public class OutputPopulationGenerator {
     }
 
     private List<String> handleObjectInfo(ObjectInfo objectInfo) {
-        List<OutputElement> outputs = elementTools.extractOutputs(objectInfo);
+        // List<OutputElement> outputs = elementTools.extractOutputs(objectInfo);
         if (outputs.size() == 1 && !outputs.getFirst().isFieldOutput) {
             OutputElement outputElement = outputs.getFirst();
-            outputElement.pos = "pos";
+            // outputElement.pos = "pos";
             return List.of(handleOneObjectOutput(objectInfo, outputElement));
         } else {
             List<String> outputStatements = handleMultipleOutputs(objectInfo, outputs);
             outputStatements.add(initObject(objectInfo.getField(), objectInfo.getObjectName()));
-            outputStatements.addAll(objectInfo.getFieldInfoSet()
-                    .stream()
-                    .filter(f -> f.getField().getAnnotation(Output.class) != null)
-                    .map(f -> String.format("%s__$.%s(%s__$);", objectInfo.getObjectName(), f.getSetter().getSimpleName(), f.getName()))
-                    .toList());
+            for (var out : objectInfo.getOutputs()) { // TODO: handle wrapper ?
+                var fieldOpt = objectInfo
+                        .getFieldInfoSet()
+                        .stream()
+                        .filter(f -> f.getName().equals(out.field()))
+                        .findFirst();
+                fieldOpt.ifPresent(fieldInfo -> outputStatements.add(
+                        String.format("%s__$.%s(%s__$);", objectInfo.getObjectName(), fieldInfo.getSetter().getSimpleName(), fieldInfo.getName())
+                ));
+            }
+            context.logInfoDeco(outputStatements);
             return outputStatements;
         }
     }
@@ -246,7 +252,7 @@ public class OutputPopulationGenerator {
         if (fieldInfo.getJdbcMappedType().isDateTime()) {
             return String.format("%s != null ? %s.%s : null",
                     rs, rs, toLocaleDate(fieldInfo.getJdbcMappedType()));
-        } else if (fieldInfo.getJdbcMappedType() == CHARACTER_WRAPPER || fieldInfo.getJdbcMappedType() == CHARACTER){
+        } else if (fieldInfo.getJdbcMappedType() == CHARACTER_WRAPPER || fieldInfo.getJdbcMappedType() == CHARACTER) {
             return String.format("%s != null ? %s.%s : null",
                     rs, rs, "charAt(0)");
         }

@@ -14,6 +14,6 @@ public abstract class CustomerService2 extends DataSourceAware {
     }
 
     @Procedure(name = "insert_customer", dataSource = DataSources.MY_DS)
-    public abstract @Output("p_customer_id") Integer insertCustomerObject(CustomerInsert customerInsert);
+    public abstract @Output("p_customer_id") Integer insertCustomerObject(ComposedCustomerInsert customerInsert);
 
 }

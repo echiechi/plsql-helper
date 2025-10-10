@@ -48,18 +48,13 @@ public class MethodProcessor {
         }
 
         var declaredType = (DeclaredType) method.getReturnType();
+        var outputs = elementTools.extractAnnotationsFromReturn(method);
+
+        context.logDebug("Extracted outputs : ",elementTools.extractAnnotationsFromReturn(method));
 
         if (JdbcHelper.fromSimpleName(declaredType.asElement().toString()) != null) {
             var returnVariable = new VariableInfo(declaredType.asElement());
-            var outputValue = method
-                    .getReturnType()
-                    .getAnnotationMirrors()
-                    .getFirst().getElementValues()
-                    .values()
-                    .iterator()
-                    .next()
-                    .getValue();
-            returnVariable.setOutput(elementTools.output(String.valueOf(outputValue)));
+            returnVariable.setOutputs(outputs);
             returnVariable.setCustomName(RETURN_NAME);
             return returnVariable;
         }
@@ -68,7 +63,9 @@ public class MethodProcessor {
 
         if (declaredType.getTypeArguments().isEmpty()) {
             validateOutputAnnotation(returnTypeElement);
-            return extractor.extractFields(RETURN_NAME, (TypeElement) declaredType.asElement());
+            var objectInfo = extractor.extractFields(RETURN_NAME, (TypeElement) declaredType.asElement());
+            objectInfo.setOutputs(outputs);
+            return objectInfo;
         } else if (elementTools.isSimpleWrapper(declaredType.asElement())) { // TODO: do special handling for Map
             var argOpt = declaredType
                     .getTypeArguments()
@@ -79,6 +76,7 @@ public class MethodProcessor {
                 validateOutputAnnotation(type);
                 var objectInfo = extractor.extractFields(RETURN_NAME, type);
                 objectInfo.setWrapper((TypeElement) declaredType.asElement());
+                objectInfo.setOutputs(outputs);
                 return objectInfo;
             }
         }

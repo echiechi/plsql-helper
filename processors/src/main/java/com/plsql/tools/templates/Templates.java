@@ -33,10 +33,7 @@ public class Templates {
 
             }
             """;
-    public static final String PROCEDURE_CALL_TEMPLATE = """
-            public static final String <PROCEDURE_FULL_NAME> = "{ call <PACKAGE_CALL_NAME><PROCEDURE_CALL_NAME>(<PROCEDURE_PARAMETERS>) }";
-            """;
-    public static final String METHOD_TEMPLATE = """
+    public static final String PROCEDURE_METHOD_TEMPLATE = """
             <STATEMENT_STATIC_CALL>
             @Override
             public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
@@ -45,7 +42,7 @@ public class Templates {
                      CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)
                 ) {
                     <INIT_POS>
-                    <STATEMENT_POPULATION:{statement |  <statement>
+                    <STATEMENT_POPULATION:{statement | <statement>
                     }>
                     <REGISTER_OUT_PARAM>
                     stmt.execute();
@@ -57,15 +54,25 @@ public class Templates {
             }
             """;
 
-    public static final String RESULT_SET_TEMPLATE = """
-            <INIT_LIST_STATEMENT>
-            try(ResultSet rs = (ResultSet)stmt.getObject(<POSITION>);){
-                <OBJECT_INIT_STATEMENT>
-                while(rs.next()){
-                    <SETTER_STATEMENTS:{statement |  <statement>
+    public static final String FUNCTION_METHOD_TEMPLATE = """
+            <STATEMENT_STATIC_CALL>
+            @Override
+            public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
+                DataSource ds = dataSourceProvider.getDataSource("<DATA_SOURCE>");
+                try (Connection cnx = ds.getConnection();
+                     CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)
+                ) {
+                    <INIT_POS>
+                    <REGISTER_OUT_PARAM>
+                    <STATEMENT_POPULATION:{statement | <statement>
                     }>
-                    <ADD_TO_LIST>
+                    stmt.execute();
+                    <RESULT_SET_EXTRACTION>
+                    <RETURN_STATEMENT>
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
                 }
-            }""";
+            }
+            """;
 
 }

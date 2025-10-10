@@ -7,11 +7,10 @@ import oracle.jdbc.pool.OracleDataSource;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Properties;
 import java.util.Random;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static final String url = "jdbc:oracle:thin:@//localhost:1521/FREEPDB1";
     public static final String userName = "SYSTEM";
@@ -51,11 +50,35 @@ public class Main {
                 customerInsert.getIsPremium()
         ));
 
-        long customerId = customerService2.insertCustomerObject(initRandomCustomer());
+        long customerId = customerService2.insertCustomerObject(initRandomComposedCustomer());
 
         customerService.displayMessageCustomer();
 
         System.out.println(customerService.getCustomerById(customerId));
+
+        System.out.println(customerService.getCustomerByCrit(
+                "Smith",
+                "john.smith@email.com",
+                null,
+                'Y'
+        ));
+
+        System.out.println(customerService.getAllCustomers(10, 1));
+
+        customerService.updateCustomer(customerId,
+                "Test_Update",
+                "Test_last_Name",
+                null,
+                "+3326523528",
+                'Y',
+                'N',
+                LocalDateTime.now()
+        );
+
+        System.out.println(customerService.getCustomerById(customerId));
+
+        System.out.println(customerService.getCustomerFullName(customerId));
+
     }
 
     public static CustomerInsert initRandomCustomer() {
@@ -74,6 +97,34 @@ public class Main {
         customer.setStateProvince("CA");
         customer.setPostalCode("90" + (100 + random.nextInt(900)));
         customer.setCountry("USA"); // default anyway, but you can override
+        customer.setDateOfBirth(LocalDate.of(
+                1950 + random.nextInt(50), // year 1950–1999
+                1 + random.nextInt(12),   // month
+                1 + random.nextInt(28)    // day (safe range)
+        ));
+        customer.setIsPremium(random.nextBoolean() ? 'Y' : 'N');
+        System.out.println(customer);
+        return customer;
+    }
+
+    public static ComposedCustomerInsert initRandomComposedCustomer() {
+        Random random = new Random();
+        ComposedCustomerInsert customer = new ComposedCustomerInsert(); // 👈 using default constructor
+        customer.setFirstName("Alice");
+        customer.setLastName("Smith");
+        customer.setEmail("alice.smith." + (1000 + random.nextInt(9000)) + "@example.com");
+        customer.setPhone("+1-555-" + (1000 + random.nextInt(9000)));
+        customer.setAge(18 + random.nextInt(50)); // random age 18–67
+        customer.setCreditLimit(500.0 + random.nextDouble() * 5000); // 500–5500
+        customer.setAccountBalance(random.nextDouble() * 10000); // 0–9999
+        var customerAdr = new CustomerAddress();
+        customerAdr.setAddressLine1("456 Elm Street");
+        customerAdr.setAddressLine2("Unit " + (1 + random.nextInt(100)));
+        customerAdr.setCity("Los Angeles");
+        customerAdr.setStateProvince("CA");
+        customerAdr.setPostalCode("90" + (100 + random.nextInt(900)));
+        customerAdr.setCountry("USA"); // default anyway, but you can override
+        customer.setCustomerAddress(customerAdr);
         customer.setDateOfBirth(LocalDate.of(
                 1950 + random.nextInt(50), // year 1950–1999
                 1 + random.nextInt(12),   // month

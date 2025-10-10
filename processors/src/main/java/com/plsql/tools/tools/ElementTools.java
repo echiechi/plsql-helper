@@ -1,6 +1,7 @@
 package com.plsql.tools.tools;
 
 import com.plsql.tools.ProcessingContext;
+import com.plsql.tools.annotations.MultiOutput;
 import com.plsql.tools.annotations.Output;
 import com.plsql.tools.tools.fields.info.ObjectInfo;
 import com.plsql.tools.tools.fields.info.VariableInfo;
@@ -15,7 +16,8 @@ import javax.lang.model.type.TypeMirror;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ElementTools {
     public static class OutputElement {
@@ -46,6 +48,8 @@ public class ElementTools {
     }
 
     private final ProcessingContext context;
+
+    private Pattern pattern = Pattern.compile("value\\s*=\\s*\"([^\"]+)\".*field\\s*=\\s*\"([^\"]+)\"");
 
     public ElementTools(ProcessingContext context) {
         this.context = context;
@@ -133,29 +137,31 @@ public class ElementTools {
         if (variableInfo == null) {
             return outputs;
         }
-        if (variableInfo instanceof ObjectInfo objectInfo) {
-            outputs.addAll(objectInfo.getFieldInfoSet()
-                    .stream()
-                    .map(k -> new OutputElement(k.getField().getAnnotation(Output.class), k.getField()))
-                    .peek(o -> o.isFieldOutput = true)
-                    .peek(o -> {
-                        var typeElement = Tools.getTypeElement(context, o.element);
+        if (variableInfo instanceof ObjectInfo objectInfo) { // TODO: in case of Multioutput must be >= 2 and refactor
+            if (objectInfo.getOutputs() != null && objectInfo.getOutputs().size() == 1) {
+                outputs.add(new OutputElement(objectInfo.getOutputs().getFirst(), objectInfo.getField()));
+            } else if (objectInfo.getOutputs() != null && objectInfo.getOutputs().size() >= 2) {
+                for (var out : objectInfo.getOutputs()) {
+                    var outputFieldOpt = objectInfo
+                            .getFieldInfoSet()
+                            .stream()
+                            .filter(f -> f.getName().equals(out.field()))
+                            .findFirst();
+                    if (outputFieldOpt.isPresent()) {
+                        var outputElement = new OutputElement(out, outputFieldOpt.get().getField());
+                        outputElement.isFieldOutput = true;
+                        var typeElement = Tools.getTypeElement(context, outputElement.element);
                         if (isWrapped(typeElement)) {
-                            o.wrappedType = extractDeclaredType(o.element.asType());
+                            outputElement.wrappedType = extractDeclaredType(outputElement.element.asType());
                         }
-                    })
-                    .filter(o -> Objects.nonNull(o.output))
-                    .toList());
-            if (outputs.isEmpty() && objectInfo.getField().getAnnotation(Output.class) != null) {
-                outputs.add(new OutputElement(objectInfo.getField().getAnnotation(Output.class), objectInfo.getField()));
-            } else if (objectInfo.getOutput() != null) {
-                outputs.add(new OutputElement(objectInfo.getOutput(), objectInfo.getField()));
-            } else if (outputs.isEmpty()) {
-                outputs.add(new OutputElement(defaultOutput(), objectInfo.getField()));
+                        outputs.add(outputElement);
+                    }
+                }
             }
-        } else {
-            outputs.add(new OutputElement(variableInfo.getOutput(), variableInfo.getField()));
+        } else if (variableInfo.getOutputs() != null) {
+            outputs.add(new OutputElement(variableInfo.getOutputs().getFirst(), variableInfo.getField()));
         }
+        context.logDebug("Extracted Output elements: ", outputs);
         return outputs;
     }
 
@@ -171,20 +177,6 @@ public class ElementTools {
         return null;
     }
 
-    public Output defaultOutput() {
-        return new Output() {
-            @Override
-            public Class<? extends Annotation> annotationType() {
-                return Output.class;
-            }
-
-            @Override
-            public String value() {
-                return "ps_curs";
-            }
-        };
-    }
-
     public Output output(String value) {
         return new Output() {
             @Override
@@ -196,6 +188,78 @@ public class ElementTools {
             public String value() {
                 return value;
             }
+
+            @Override
+            public String field() {
+                return "";
+            }
         };
+    }
+
+    public Output output(String value, String field) {
+        return new Output() {
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return Output.class;
+            }
+
+            @Override
+            public String value() {
+                return value;
+            }
+
+            @Override
+            public String field() {
+                return field;
+            }
+        };
+    }
+    // TODO: refactor
+    public List<Output> extractAnnotationsFromReturn(ExecutableElement method) {
+        List<Output> list = new ArrayList<>();
+        var returnAnnotations = method
+                .getReturnType()
+                .getAnnotationMirrors();
+        var multiOutput = returnAnnotations
+                .stream()
+                .filter(m -> m.toString().startsWith("@" + MultiOutput.class.getCanonicalName()))
+                .findFirst();
+        if (multiOutput.isPresent()) {
+            multiOutput.get().getElementValues()
+                    .values()
+                    .forEach(v -> {
+                        if (v.getValue() instanceof List<?>) {
+                            ((List<?>) v.getValue()).forEach(val -> {
+                                Matcher matcher = pattern.matcher(val.toString());
+                                if (matcher.find()) {
+                                    String value = matcher.group(1);
+                                    String field = matcher.group(2);
+                                    list.add(output(value, field));
+                                }
+                            });
+                        }
+                    });
+        } else {
+            var oneOutput = returnAnnotations
+                    .stream()
+                    .filter(m -> m.toString().startsWith("@" + Output.class.getCanonicalName()))
+                    .findFirst();
+            if (oneOutput.isPresent()) {
+                var values = oneOutput.get()
+                        .getElementValues()
+                        .values().
+                        toArray();
+                if (values.length > 1) {
+                    var value = values[0].toString().replaceAll("\"", "");
+                    var field = values[1].toString().replaceAll("\"", "");
+                    list.add(output(value, field));
+                } else if (values.length == 1) {
+                    var value = values[0].toString().replaceAll("\"", "");
+                    list.add(output(value));
+                }
+            }
+        }
+
+        return list;
     }
 }

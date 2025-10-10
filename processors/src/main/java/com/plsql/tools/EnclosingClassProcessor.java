@@ -2,6 +2,7 @@ package com.plsql.tools;
 
 import com.plsql.tools.annotations.Function;
 import com.plsql.tools.annotations.Procedure;
+import com.plsql.tools.statement.generators.FunctionMethodGenerator;
 import com.plsql.tools.statement.generators.ProcedureMethodGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
@@ -62,10 +63,26 @@ public class EnclosingClassProcessor {
                     processedMethods.add(methodName);
                 }
             } else if (method.getAnnotation(Function.class) != null) {
-                context.logInfo("Function generation not yet implemented for: " + methodName);
+                String functionMethod = generateFunctionCall(method);
+                if (functionMethod != null) {
+                    generatedMethods.add(functionMethod);
+                    processedMethods.add(methodName);
+                }
             }
         } catch (Exception e) {
             context.logError("Error processing method " + methodName + ": " + e.getMessage());
+        }
+    }
+
+    private String generateFunctionCall(ExecutableElement method) {
+        try {
+            FunctionMethodGenerator generator = new FunctionMethodGenerator(
+                    context, packageClass, method
+            );
+            return generator.generate();
+        } catch (Exception e) {
+            context.logError("Failed to generate function call for " + method.getSimpleName() + ": " + e.getMessage());
+            return null;
         }
     }
 
