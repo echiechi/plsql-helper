@@ -20,7 +20,7 @@ public class Main {
         var connectionProperties = new Properties();
         connectionProperties.setProperty(OracleConnection.CONNECTION_PROPERTY_USER_NAME, userName);
         connectionProperties.setProperty(OracleConnection.CONNECTION_PROPERTY_PASSWORD, password);
-
+        System.out.println(CustomerMulti.Fields.customerGets);
         var oracleDataSource = new OracleDataSource();
         oracleDataSource.setConnectionProperties(connectionProperties);
         oracleDataSource.setURL(url);
@@ -77,7 +77,7 @@ public class Main {
 
         System.out.println(customerService.getCustomerById(customerId));
 
-        System.out.println(customerService.getCustomerFullName(customerId));
+        //System.out.println(customerService.getCustomerFullName(customerId));
 
     }
 

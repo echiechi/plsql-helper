@@ -1,12 +1,13 @@
 package com.plsql.tools.tools.fields.info;
 
-import com.plsql.tools.annotations.Input;
+import com.plsql.tools.annotations.PlsqlParam;
 import com.plsql.tools.annotations.Output;
 import com.plsql.tools.enums.JdbcHelper;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.lang.model.element.Element;
 import java.util.List;
+@Deprecated
 
 public class VariableInfo implements Info {
     protected Element field;
@@ -56,8 +57,8 @@ public class VariableInfo implements Info {
     }
 
     public String inputName() {
-        Input input = field.getAnnotation(Input.class);
-        return input != null && StringUtils.isNotBlank(input.value()) ? input.value() : getName();
+        PlsqlParam plsqlParam = field.getAnnotation(PlsqlParam.class);
+        return plsqlParam != null && StringUtils.isNotBlank(plsqlParam.value()) ? plsqlParam.value() : getName();
     }
     public List<Output> getOutputs() {
         return outputs;

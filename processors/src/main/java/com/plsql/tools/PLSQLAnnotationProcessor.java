@@ -4,6 +4,7 @@ import com.plsql.tools.annotations.Package;
 import com.plsql.tools.annotations.Record;
 import com.plsql.tools.processors.RecordProcessor;
 import com.plsql.tools.tools.Tools;
+import com.plsql.tools.tools.extraction.Extractor;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -22,18 +23,17 @@ import java.util.stream.Collectors;
  */
 @SupportedAnnotationTypes({
         "com.plsql.tools.annotations.Package",
-        "com.plsql.tools.annotations.Procedure",
+        "com.plsql.tools.annotations.PlsqlCallable",
         "com.plsql.tools.annotations.Function",
         "com.plsql.tools.annotations.Record"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class PLSQLAnnotationProcessor extends AbstractProcessor {
-    // TODO : add record and test with records
-    // TODO : return of optional must be treated and added
     // TODO : create a cache also of templates => new Obj() obj.setName(rs.getString("colName")); ....
     // TODO : Potential recursion problem fix no nested classes of the same type
     // TODO : handle primitive type as return : throw exception and error message ?
-    // TODO : handle overload of methods: for now its disabled and proc/function reuse in same package
+    // TODO : handle STREAM from resultSet
+
     private Filer filer;
     private ProcessingContext context;
     private RecordProcessor recordProcessor;
@@ -43,6 +43,7 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
         super.init(processingEnv);
         this.filer = processingEnv.getFiler();
         this.context = new ProcessingContext(processingEnv, Boolean.parseBoolean(System.getProperty("debug")));
+        Extractor.getInstance().context(this.context);
         this.recordProcessor = new RecordProcessor(context);
         context.logInfoDeco("PL/SQL Annotation Processor initialized");
     }

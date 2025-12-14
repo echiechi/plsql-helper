@@ -13,6 +13,9 @@ public class Templates {
             import java.sql.ResultSet;
             import java.sql.SQLException;
             import java.sql.JDBCType;
+            
+            import com.plsql.tools.gen.tools.DateTools;
+            
             /**
              * ----------------------------------------------------------------------------
              * THIS IS A GENERATED FILE - DO NOT EDIT MANUALLY
@@ -42,8 +45,7 @@ public class Templates {
                      CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)
                 ) {
                     <INIT_POS>
-                    <STATEMENT_POPULATION:{statement | <statement>
-                    }>
+                    <STATEMENT_POPULATION>
                     <REGISTER_OUT_PARAM>
                     stmt.execute();
                     <RESULT_SET_EXTRACTION>
@@ -64,8 +66,7 @@ public class Templates {
                 ) {
                     <INIT_POS>
                     <REGISTER_OUT_PARAM>
-                    <STATEMENT_POPULATION:{statement | <statement>
-                    }>
+                    <STATEMENT_POPULATION>
                     stmt.execute();
                     <RESULT_SET_EXTRACTION>
                     <RETURN_STATEMENT>

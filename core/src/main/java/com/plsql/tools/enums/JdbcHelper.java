@@ -58,7 +58,7 @@ public enum JdbcHelper {
     BYTE_ARRAY(byte[].class, "setBytes", "getBytes", "byte[]", JDBCType.VARBINARY),
     STRING_ARRAY(String[].class, "setArray", "getArray", "java.lang.String[]", JDBCType.ARRAY),
     OBJECT_ARRAY(Object[].class, "setArray", "getArray", "java.lang.Object[]", JDBCType.ARRAY);
-
+    // NULL(null, "setNull", "getNull", "null", JDBCType.NULL);
     private final Class<?> primitiveType;
     private final String jdbcSetterMethod;
     private final String jdbcGetterMethod;
@@ -213,7 +213,7 @@ public enum JdbcHelper {
      * Get all numeric types
      */
     public static JdbcHelper[] getNumericTypes() {
-        return new JdbcHelper[] {
+        return new JdbcHelper[]{
                 BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BIG_DECIMAL, BIG_INTEGER,
                 BYTE_WRAPPER, SHORT_WRAPPER, INTEGER_WRAPPER, LONG_WRAPPER,
                 FLOAT_WRAPPER, DOUBLE_WRAPPER
@@ -224,7 +224,7 @@ public enum JdbcHelper {
      * Get all primitive types
      */
     public static JdbcHelper[] getPrimitiveTypes() {
-        return new JdbcHelper[] {
+        return new JdbcHelper[]{
                 BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BOOLEAN, CHARACTER
         };
     }

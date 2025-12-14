@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Deprecated
 public class ElementTools {
     public static class OutputElement {
         public Output output;
@@ -139,7 +140,7 @@ public class ElementTools {
         }
         if (variableInfo instanceof ObjectInfo objectInfo) { // TODO: in case of Multioutput must be >= 2 and refactor
             if (objectInfo.getOutputs() != null && objectInfo.getOutputs().size() == 1) {
-                outputs.add(new OutputElement(objectInfo.getOutputs().getFirst(), objectInfo.getField()));
+                outputs.add(new OutputElement(objectInfo.getOutputs().get(0), objectInfo.getField()));
             } else if (objectInfo.getOutputs() != null && objectInfo.getOutputs().size() >= 2) {
                 for (var out : objectInfo.getOutputs()) {
                     var outputFieldOpt = objectInfo
@@ -159,7 +160,7 @@ public class ElementTools {
                 }
             }
         } else if (variableInfo.getOutputs() != null) {
-            outputs.add(new OutputElement(variableInfo.getOutputs().getFirst(), variableInfo.getField()));
+            outputs.add(new OutputElement(variableInfo.getOutputs().get(0), variableInfo.getField()));
         }
         context.logDebug("Extracted Output elements: ", outputs);
         return outputs;
@@ -215,6 +216,7 @@ public class ElementTools {
         };
     }
     // TODO: refactor
+    @Deprecated
     public List<Output> extractAnnotationsFromReturn(ExecutableElement method) {
         List<Output> list = new ArrayList<>();
         var returnAnnotations = method

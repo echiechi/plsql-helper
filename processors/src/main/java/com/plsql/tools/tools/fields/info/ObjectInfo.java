@@ -4,6 +4,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import java.util.*;
 
+@Deprecated
 public class ObjectInfo extends VariableInfo {
     private final String objectName;
     private Set<FieldInfo> fieldInfoSet;

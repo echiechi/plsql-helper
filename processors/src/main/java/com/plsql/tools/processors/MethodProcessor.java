@@ -20,6 +20,7 @@ import java.util.Set;
 import static com.plsql.tools.tools.Tools.RETURN_NAME;
 import static com.plsql.tools.tools.Tools.getTypeElement;
 
+@Deprecated
 public class MethodProcessor {
     private final ProcessingContext context;
     private final FieldMethodExtractor extractor;
@@ -50,7 +51,7 @@ public class MethodProcessor {
         var declaredType = (DeclaredType) method.getReturnType();
         var outputs = elementTools.extractAnnotationsFromReturn(method);
 
-        context.logDebug("Extracted outputs : ",elementTools.extractAnnotationsFromReturn(method));
+        context.logDebug("Extracted outputs : ", elementTools.extractAnnotationsFromReturn(method));
 
         if (JdbcHelper.fromSimpleName(declaredType.asElement().toString()) != null) {
             var returnVariable = new VariableInfo(declaredType.asElement());

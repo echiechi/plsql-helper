@@ -1,4 +1,4 @@
-package com.plsql.tools.statement;
+package com.plsql.tools.statement.params;
 
 public enum ParameterType {
     IN("IN"),

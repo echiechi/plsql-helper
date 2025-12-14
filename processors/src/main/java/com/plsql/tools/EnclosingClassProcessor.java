@@ -1,8 +1,7 @@
 package com.plsql.tools;
 
-import com.plsql.tools.annotations.Function;
-import com.plsql.tools.annotations.Procedure;
-import com.plsql.tools.statement.generators.FunctionMethodGenerator;
+import com.plsql.tools.annotations.PlsqlCallable;
+import com.plsql.tools.processors.MethodToProcess;
 import com.plsql.tools.statement.generators.ProcedureMethodGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
@@ -13,21 +12,19 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class EnclosingClassProcessor {
     private final ProcessingContext context;
     private final TypeElement packageClass;
     private final List<String> generatedMethods;
-    private final Set<String> processedMethods;
+    private final List<String> processedMethods;
 
     public EnclosingClassProcessor(ProcessingContext context, TypeElement packageClass) {
         this.context = context;
         this.packageClass = packageClass;
         this.generatedMethods = new ArrayList<>();
-        this.processedMethods = new HashSet<>();
+        this.processedMethods = new ArrayList<>();
     }
 
     public String generateImplementation() {
@@ -48,24 +45,19 @@ public class EnclosingClassProcessor {
     }
 
     private void processMethod(ExecutableElement method) {
+
         String methodName = method.getSimpleName().toString();
 
+        String suffix = "";
         if (processedMethods.contains(methodName)) { // should not be possible ?
-            context.logError("Duplicate method name found: " + methodName);
-            return;
+            suffix = "" + processedMethods.lastIndexOf(methodName);
         }
 
         try {
-            if (method.getAnnotation(Procedure.class) != null) {
-                String procedureMethod = generateProcedureCall(method);
+            if (method.getAnnotation(PlsqlCallable.class) != null) {
+                String procedureMethod = generateProcedureCall(new MethodToProcess(method, suffix));
                 if (procedureMethod != null) {
                     generatedMethods.add(procedureMethod);
-                    processedMethods.add(methodName);
-                }
-            } else if (method.getAnnotation(Function.class) != null) {
-                String functionMethod = generateFunctionCall(method);
-                if (functionMethod != null) {
-                    generatedMethods.add(functionMethod);
                     processedMethods.add(methodName);
                 }
             }
@@ -74,25 +66,13 @@ public class EnclosingClassProcessor {
         }
     }
 
-    private String generateFunctionCall(ExecutableElement method) {
-        try {
-            FunctionMethodGenerator generator = new FunctionMethodGenerator(
-                    context, packageClass, method
-            );
-            return generator.generate();
-        } catch (Exception e) {
-            context.logError("Failed to generate function call for " + method.getSimpleName() + ": " + e.getMessage());
-            return null;
-        }
-    }
-
-    private String generateProcedureCall(ExecutableElement method) {
+    private String generateProcedureCall(MethodToProcess methodToProcess) {
         try {
             ProcedureMethodGenerator generator = new ProcedureMethodGenerator(
-                    context, packageClass, method);
+                    context, packageClass, methodToProcess);
             return generator.generate();
         } catch (Exception e) {
-            context.logError("Failed to generate procedure call for " + method.getSimpleName() + ": " + e.getMessage());
+            context.logError("Failed to generate procedure call for " + methodToProcess.method().getSimpleName() + ": " + e.getMessage());
             return null;
         }
     }

@@ -1,6 +1,7 @@
 package com.plsql.tools.example.customer;
 
 import com.plsql.tools.annotations.Output;
+import com.plsql.tools.annotations.Record;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -11,6 +12,7 @@ import java.time.LocalTime;
 
 @Data
 @Output("p_customer_data")
+@Record
 public class CustomerGet {
     private Long customerId;                // NUMBER(10,0)
     private Integer age;                    // NUMBER(3,0)

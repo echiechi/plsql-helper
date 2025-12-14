@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 public class ProcessingContext {
     private final ProcessingEnvironment processingEnv;
     private final MessageUtils messageUtils;
-
     private boolean isDebugEnabled;
 
     public ProcessingContext(ProcessingEnvironment processingEnv) {

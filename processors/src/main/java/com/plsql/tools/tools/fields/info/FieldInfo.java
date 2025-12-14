@@ -4,6 +4,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import java.util.Objects;
 
+@Deprecated
 public class FieldInfo extends VariableInfo {
     private ExecutableElement getter;
     private ExecutableElement setter;

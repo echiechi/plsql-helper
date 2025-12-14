@@ -2,8 +2,8 @@ package com.plsql.tools.templates;
 
 public enum FunctionCallParams {
     FUNCTION_FULL_NAME,
-    FUNCTION_RETURN,
     PACKAGE_CALL_NAME,
     FUNCTION_CALL_NAME,
-    FUNCTION_PARAMETERS
+    FUNCTION_PARAMETERS,
+    SUFFIX;
 }

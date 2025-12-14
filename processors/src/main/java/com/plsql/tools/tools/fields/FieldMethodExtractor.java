@@ -18,6 +18,7 @@ import static com.plsql.tools.tools.Tools.extractNameAsStr;
 import static com.plsql.tools.tools.ValidationUtils.isValidGetter;
 import static com.plsql.tools.tools.ValidationUtils.isValidSetter;
 
+@Deprecated
 public class FieldMethodExtractor {
 
     private static FieldMethodExtractor INSTANCE;
@@ -68,15 +69,6 @@ public class FieldMethodExtractor {
                 if (!field.isSimple()) {
                     TypeElement typeElement = Tools.getTypeElement(context, field.getField());
                     if (elementTools.isWrapped(typeElement)) {
-                        /*var asType = field.getField().asType();
-                        if (asType.getKind() == TypeKind.DECLARED) {
-                            var typeMirror = ((DeclaredType) asType).getTypeArguments()
-                                    .stream()
-                                    .findFirst();
-                            if (typeMirror.isPresent()) {
-                                typeElement = Tools.getTypeElement(context, typeMirror.get());
-                            }
-                        }*/
                         typeElement = elementTools.extractDeclaredType(field.getField().asType());
                     }
                     objectInfo.addToNestedObjects(typeElement, recordsCache.get(typeElement));

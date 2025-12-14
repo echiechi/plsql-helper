@@ -217,7 +217,7 @@ public final class CaseConverter {
      * Converts multiple snake_case strings to camelCase with custom configuration.
      */
     public static List<String> toCamelCaseBulk(List<String> snakeCaseStrings, Config config) {
-        Objects.requireNonNull(snakeCaseStrings, "Input list cannot be null");
+        Objects.requireNonNull(snakeCaseStrings, "PlsqlParam list cannot be null");
         Objects.requireNonNull(config, "Config cannot be null");
 
         List<String> result = new ArrayList<>(snakeCaseStrings.size());
@@ -231,7 +231,7 @@ public final class CaseConverter {
      * Converts multiple camelCase strings to snake_case.
      */
     public static List<String> toSnakeCaseBulk(List<String> camelCaseStrings) {
-        Objects.requireNonNull(camelCaseStrings, "Input list cannot be null");
+        Objects.requireNonNull(camelCaseStrings, "PlsqlParam list cannot be null");
 
         List<String> result = new ArrayList<>(camelCaseStrings.size());
         for (String camelCase : camelCaseStrings) {
@@ -368,5 +368,9 @@ public final class CaseConverter {
         return !input.contains("_") &&
                 Character.isLetter(input.charAt(0)) &&
                 input.chars().allMatch(Character::isLetterOrDigit);
+    }
+
+    public static String upperCaseFirstLetter(String input) {
+        return input.substring(0, 1).toUpperCase() + input.substring(1);
     }
 }

@@ -2,119 +2,126 @@ package com.plsql.tools.statement.generators;
 
 import com.plsql.tools.ProcessingContext;
 import com.plsql.tools.annotations.Package;
-import com.plsql.tools.annotations.Procedure;
-import com.plsql.tools.processors.MethodProcessingResult;
-import com.plsql.tools.processors.MethodProcessor;
+import com.plsql.tools.annotations.PlsqlCallable;
+import com.plsql.tools.enums.CallableType;
+import com.plsql.tools.processors.MethodToProcess;
+import com.plsql.tools.statement.CallGenerator;
 import com.plsql.tools.templates.TemplateParams;
-import com.plsql.tools.templates.Templates;
-import com.plsql.tools.tools.ElementTools;
+import com.plsql.tools.tools.extraction.Extractor;
+import com.plsql.tools.tools.extraction.info.ElementInfo;
 import com.plsql.tools.utils.CaseConverter;
 import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
 
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.plsql.tools.templates.Templates.FUNCTION_METHOD_TEMPLATE;
+import static com.plsql.tools.templates.Templates.PROCEDURE_METHOD_TEMPLATE;
 import static com.plsql.tools.tools.Tools.*;
 
 public class ProcedureMethodGenerator {
     private final ProcessingContext context;
     private final TypeElement packageClass;
-    private final ExecutableElement method;
-    private final MethodProcessor methodProcessor;
-    private final ElementTools elementTools;
+    private final MethodToProcess methodToProcess;
 
     public ProcedureMethodGenerator(ProcessingContext context,
                                     TypeElement packageClass,
-                                    ExecutableElement method) {
+                                    MethodToProcess methodToProcess) {
         this.context = context;
-        this.method = method;
+        this.methodToProcess = methodToProcess;
         this.packageClass = packageClass;
-        this.methodProcessor = new MethodProcessor(context);
-        this.elementTools = new ElementTools(context);
     }
 
     // TODO : working example
     public String generate() {
-        MethodProcessingResult result = methodProcessor.process(method);
         Package packageAnnotation = packageClass.getAnnotation(Package.class);
-        Procedure procedureAnnotation = method.getAnnotation(Procedure.class);
+        PlsqlCallable plsqlCallableAnnotation = methodToProcess.method().getAnnotation(PlsqlCallable.class);
+        List<ElementInfo> methodParameters = Extractor.getInstance().extractParams(methodToProcess.method());
 
         var packageName = StringUtils.isBlank(packageAnnotation.name()) ?
                 CaseConverter.toSnakeCase(packageClass.getSimpleName().toString()) :
                 packageAnnotation.name();
-        var procedureName = StringUtils.isBlank(procedureAnnotation.name()) ?
-                CaseConverter.toSnakeCase(method.getSimpleName().toString()) :
-                procedureAnnotation.name();
+        var procedureName = StringUtils.isBlank(plsqlCallableAnnotation.name()) ?
+                CaseConverter.toSnakeCase(methodToProcess.method().getSimpleName().toString()) :
+                plsqlCallableAnnotation.name();
 
-        context.logInfo("Extract procedure outputs", result.getReturnResult());
-        var outputs = elementTools.extractOutputs(result.getReturnResult());
+        var outputs = Arrays.asList(plsqlCallableAnnotation.outputs());
         context.logDebug("Outputs:", outputs.stream().map(String::valueOf).collect(Collectors.joining("|")));
 
+        context.logInfoDeco("TYPE : ", plsqlCallableAnnotation.type());
+        List<String> paramNames = Extractor.getInstance().extractPramNames(methodParameters);
+
         context.logInfo("Generate JDBC call");
-        var procedureCall = new ProcedureCallGenerator(
-                packageName,
-                procedureName);
-        result.getParameterNames().forEach(procedureCall::withParameter);
-        outputs.forEach(o -> procedureCall.withParameter(o.output.value()));
-        var procedureCallStatement = procedureCall.build();
-        context.logDebug("Procedure call:", procedureCallStatement);
+        CallGenerator callable = null;
+        if (plsqlCallableAnnotation.type() == CallableType.PROCEDURE) {
+            callable = new ProcedureCallGenerator(
+                    packageName,
+                    procedureName);
+            callable.withSuffix(methodToProcess.suffix());
+            paramNames.forEach(callable::withParameter);
+            for (var output : outputs) {
+                callable.withParameter(output.value());
+            }
+        } else {
+            callable = new FunctionCallGenerator(
+                    packageName,
+                    procedureName);
+            callable.withSuffix(methodToProcess.suffix());
+            paramNames.forEach(callable::withParameter);
+            if (outputs.size() > 1) {
+                throw new IllegalStateException("A Function type can have only one @Output and it must be a simple type");
+            } else if (outputs.isEmpty()) {
+                throw new IllegalStateException("A Function must have a return (@Output)");
+            }
+        }
+
+        var procedureCallStatement = callable.generate();
+        context.logDebug("PlsqlCallable call:", procedureCallStatement);
 
         context.logInfo("Generate Statement population from class parameters");
-        var stmtPopulationBuilder = new StmtPopulationGenerator(context);
-        var populationStatements = String.join("\n", stmtPopulationBuilder.generateStatements(result.getParameterInfo()));
-        context.logDebug("Statement population:", populationStatements);
+        var boundGeneratedStatements = new PlsqlParamBinderGenerator(methodParameters).generate();
+        context.logDebug("Statement population:", boundGeneratedStatements);
 
-        context.logInfo("Generate output registration");
-        String registeredOutParameters;
-        if (result.getReturnResult() == null) {
-            registeredOutParameters = "";
-        } else {
-            var outRegistrationGenerator = new OutRegistrationGenerator(context);
-            registeredOutParameters = String.join("\n", outRegistrationGenerator
-                    .generateOutStatements(outputs));
-        }
-        context.logDebug("Registering out statements:", registeredOutParameters);
+        var extractedReturnInfo = Extractor.getInstance().extractReturn(methodToProcess.method());
+        var outputRegistration = new OutputRegistrationGenerator(extractedReturnInfo).generate();
+        context.logInfoDeco(outputRegistration);
 
-        context.logInfo("Generate ResultSet mapping...");
-        String extractedOutputs;
-        if (result.getReturnResult() == null) {
-            extractedOutputs = "";
-        } else {
-            // set first position :
-            outputs.getFirst().pos = "pos";
-            var outputGeneration = new OutputPopulationGenerator(context, outputs);
-            extractedOutputs = String.join("\n",
-                    outputGeneration.generateStatements(result.getReturnResult()));
-        }
-        context.logDebug("Extracting outputs from statement:", extractedOutputs);
+        var returnGenerator = new ReturnGenerator(extractedReturnInfo);
+        var generatedReturn = returnGenerator.generate();
+        context.logInfoDeco(generatedReturn);
 
         context.logInfo("Build method template...");
-        return buildMethodTemplate(procedureCallStatement,
-                method.getReturnType().toString(),
-                method.getSimpleName().toString(),
-                method.getParameters().stream().map(v -> String.format("%s %s", v.asType(), v.getSimpleName()))
+
+        return buildMethodTemplate(
+                plsqlCallableAnnotation.type() == CallableType.PROCEDURE ? PROCEDURE_METHOD_TEMPLATE : FUNCTION_METHOD_TEMPLATE,
+                procedureCallStatement,
+                methodToProcess.method().getReturnType().toString(),
+                methodToProcess.method().getSimpleName().toString(),
+                methodToProcess.method().getParameters().stream().map(v -> String.format("%s %s", v.asType(), v.getSimpleName()))
                         .collect(Collectors.joining(", ")),
-                procedureAnnotation.dataSource(),
+                plsqlCallableAnnotation.dataSource(),
                 String.format("%s_%s", packageName, procedureName),
-                populationStatements,
-                registeredOutParameters,
-                extractedOutputs
+                boundGeneratedStatements,
+                outputRegistration,
+                generatedReturn
         );
     }
 
     private String buildMethodTemplate(
+            String template,
             String procedureCall,
             String returnType,
             String methodName,
             String parameters,
             String dataSource,
             String procedureName,
-            String populationStatements,
+            String boundGeneratedStatements,
             String registeredOutParameters,
             String resultSetsExtractionStatements) {
-        ST templateBuilder = new ST(Templates.PROCEDURE_METHOD_TEMPLATE);
+        ST templateBuilder = new ST(template);
         templateBuilder.add(TemplateParams.STATEMENT_STATIC_CALL.name(), procedureCall);
 
         templateBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);
@@ -123,8 +130,8 @@ public class ProcedureMethodGenerator {
         templateBuilder.add(TemplateParams.PARAMETERS.name(), parameters);
         templateBuilder.add(TemplateParams.DATA_SOURCE.name(), dataSource);
         templateBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(), procedureName);
-        templateBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() ? "int pos = 1;" : "");
-        templateBuilder.add(TemplateParams.STATEMENT_POPULATION.name(), populationStatements);
+        templateBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() || !isVoid(returnType) ? "int pos = 1;" : "");
+        templateBuilder.add(TemplateParams.STATEMENT_POPULATION.name(), boundGeneratedStatements);
         templateBuilder.add(TemplateParams.REGISTER_OUT_PARAM.name(),
                 isVoid(returnType) ? "" : registeredOutParameters);
         templateBuilder.add(TemplateParams.RESULT_SET_EXTRACTION.name(), isVoid(returnType) ? "" : resultSetsExtractionStatements);
