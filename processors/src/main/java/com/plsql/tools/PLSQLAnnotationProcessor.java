@@ -33,7 +33,7 @@ public class PLSQLAnnotationProcessor extends AbstractProcessor {
     // TODO : Potential recursion problem fix no nested classes of the same type
     // TODO : handle primitive type as return : throw exception and error message ?
     // TODO : handle STREAM from resultSet
-
+    // TODO : look into n+1 problem
     private Filer filer;
     private ProcessingContext context;
     private RecordProcessor recordProcessor;

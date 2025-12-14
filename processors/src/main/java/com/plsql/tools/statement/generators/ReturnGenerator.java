@@ -238,13 +238,6 @@ public class ReturnGenerator implements Generator {
                 } else {
                     statements.addAll(initObjectStatements(extractedElement, false));
                 }
-                /*statements.add(initObject(attachedElementInfo));
-                for (var e : extractedElement.getElementInfoList()) {
-                    statements.add(String.format("%s__$.%s(%s__$);",
-                            attachedElementInfo.getName(),
-                            e.getSetter().getSimpleName(),
-                            e.getName()));
-                }*/
             }
         }
         return statements;

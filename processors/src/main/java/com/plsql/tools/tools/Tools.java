@@ -94,15 +94,6 @@ public class Tools {
         return "void".equals(returnType.trim());
     }
 
-    public static String getType(Output annotation) { // TODO : FIX RELATED METHOD
-        try {
-            //    annotation.type(); // this should throw
-        } catch (MirroredTypeException e) {
-            return String.valueOf(e.getTypeMirror());
-        }
-        return ""; // can this ever happen ??
-    }
-
     public static String defaultInitTypeForList(JdbcHelper type) {
         if (!type.isCollection()) {
             throw new IllegalArgumentException("Provided type is not a collection");

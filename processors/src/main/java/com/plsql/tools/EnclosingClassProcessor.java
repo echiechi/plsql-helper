@@ -2,7 +2,7 @@ package com.plsql.tools;
 
 import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.processors.MethodToProcess;
-import com.plsql.tools.statement.generators.ProcedureMethodGenerator;
+import com.plsql.tools.statement.generators.CallableGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
 import com.plsql.tools.tools.Tools;
@@ -68,7 +68,7 @@ public class EnclosingClassProcessor {
 
     private String generateProcedureCall(MethodToProcess methodToProcess) {
         try {
-            ProcedureMethodGenerator generator = new ProcedureMethodGenerator(
+            CallableGenerator generator = new CallableGenerator(
                     context, packageClass, methodToProcess);
             return generator.generate();
         } catch (Exception e) {

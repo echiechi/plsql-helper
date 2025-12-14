@@ -29,8 +29,8 @@
     </properties>
 
     <modules>
-        <module>core</module>
-        <module>cli</module>
+        <module>plsql-core</module>
+        <module>plsql-e2e</module>
         <module>processors</module>
     </modules>
 

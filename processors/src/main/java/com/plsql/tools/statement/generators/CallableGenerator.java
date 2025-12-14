@@ -22,14 +22,14 @@ import static com.plsql.tools.templates.Templates.FUNCTION_METHOD_TEMPLATE;
 import static com.plsql.tools.templates.Templates.PROCEDURE_METHOD_TEMPLATE;
 import static com.plsql.tools.tools.Tools.*;
 
-public class ProcedureMethodGenerator {
+public class CallableGenerator {
     private final ProcessingContext context;
     private final TypeElement packageClass;
     private final MethodToProcess methodToProcess;
 
-    public ProcedureMethodGenerator(ProcessingContext context,
-                                    TypeElement packageClass,
-                                    MethodToProcess methodToProcess) {
+    public CallableGenerator(ProcessingContext context,
+                             TypeElement packageClass,
+                             MethodToProcess methodToProcess) {
         this.context = context;
         this.methodToProcess = methodToProcess;
         this.packageClass = packageClass;
@@ -55,7 +55,7 @@ public class ProcedureMethodGenerator {
         List<String> paramNames = Extractor.getInstance().extractPramNames(methodParameters);
 
         context.logInfo("Generate JDBC call");
-        CallGenerator callable = null;
+        CallGenerator callable;
         if (plsqlCallableAnnotation.type() == CallableType.PROCEDURE) {
             callable = new ProcedureCallGenerator(
                     packageName,
@@ -82,12 +82,23 @@ public class ProcedureMethodGenerator {
         context.logDebug("PlsqlCallable call:", procedureCallStatement);
 
         context.logInfo("Generate Statement population from class parameters");
-        var boundGeneratedStatements = new PlsqlParamBinderGenerator(methodParameters).generate();
+        var paramBinderGenerator = new PlsqlParamBinderGenerator(methodParameters);
+        if (plsqlCallableAnnotation.type() == CallableType.FUNCTION) {
+            paramBinderGenerator.setPreIncrement(true);
+        }
+        var boundGeneratedStatements = paramBinderGenerator.generate();
         context.logDebug("Statement population:", boundGeneratedStatements);
 
         var extractedReturnInfo = Extractor.getInstance().extractReturn(methodToProcess.method());
         var outputRegistration = new OutputRegistrationGenerator(extractedReturnInfo).generate();
         context.logInfoDeco(outputRegistration);
+
+        if (plsqlCallableAnnotation.type() == CallableType.FUNCTION) {
+            if (extractedReturnInfo.isEmpty()) {
+                throw new IllegalStateException("A Function must have a return it can not be void");
+            }
+            extractedReturnInfo.get(0).setPos("1");
+        }
 
         var returnGenerator = new ReturnGenerator(extractedReturnInfo);
         var generatedReturn = returnGenerator.generate();

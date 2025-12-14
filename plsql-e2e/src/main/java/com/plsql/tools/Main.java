@@ -77,7 +77,7 @@ public class Main {
 
         System.out.println(customerService.getCustomerById(customerId));
 
-        //System.out.println(customerService.getCustomerFullName(customerId));
+        System.out.println(customerService.getCustomerFullName(customerId));
 
     }
 

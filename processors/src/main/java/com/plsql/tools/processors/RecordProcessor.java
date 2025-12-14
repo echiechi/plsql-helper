@@ -2,14 +2,8 @@ package com.plsql.tools.processors;
 
 import com.plsql.tools.ProcessingContext;
 import com.plsql.tools.tools.extraction.Extractor;
-import com.plsql.tools.tools.fields.FieldMethodExtractor;
-import com.plsql.tools.tools.fields.info.FieldInfo;
-import com.plsql.tools.tools.fields.info.VariableInfo;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RecordProcessor {
     private final ProcessingContext context;

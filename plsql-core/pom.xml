@@ -10,7 +10,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>core</artifactId>
+    <artifactId>plsql-core</artifactId>
 
     <packaging>jar</packaging> <!-- Default packaging for a code module -->
 
