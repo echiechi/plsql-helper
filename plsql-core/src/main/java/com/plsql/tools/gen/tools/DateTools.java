@@ -1,6 +1,8 @@
 package com.plsql.tools.gen.tools;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class DateTools {
 
@@ -30,6 +32,18 @@ public class DateTools {
             return null;
         }
         return java.sql.Time.valueOf(date);
+    }
+
+    public static LocalDate toLocalDate(java.sql.Date date) {
+        return date != null ? date.toLocalDate() : null;
+    }
+
+    public static LocalDateTime toLocalDateTime(java.sql.Timestamp date) {
+        return date != null ? date.toLocalDateTime() : null;
+    }
+
+    public static LocalTime toLocalTime(java.sql.Time time) {
+        return time != null ? time.toLocalTime() : null;
     }
 
 }

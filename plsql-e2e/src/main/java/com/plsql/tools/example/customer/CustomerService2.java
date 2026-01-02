@@ -20,7 +20,7 @@ public abstract class CustomerService2 extends DataSourceAware {
 
 
     @PlsqlCallable(name = "insert_customer", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_return"))
-    public abstract Customer insertCustomerObject();
+    public abstract Customer insertCustomerObject(Customer customer);
 
     @PlsqlCallable(name = "insert_customer", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_return"))
     public abstract List<Customer> insertCustomerObject(int test);

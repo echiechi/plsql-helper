@@ -5,8 +5,8 @@
     <file url="file://$PROJECT_DIR$/plsql-core/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/plsql-e2e/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/plsql-e2e/src/main/resources" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/processors/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/processors/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/plsql-gen/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/plsql-gen/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
   </component>

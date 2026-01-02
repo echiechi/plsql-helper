@@ -13,7 +13,7 @@
     <artifactId>plsql-e2e</artifactId>
     <packaging>jar</packaging>
 
-    <name>PL/SQL Tools CLI Module</name>
+    <name>PL/SQL Tools E2E tests Module</name>
     <description>Command Line Interface for PL/SQL tools</description>
 
     <dependencies>
@@ -25,11 +25,11 @@
         </dependency>
         <dependency>
             <groupId>com.plsql.tools</groupId>
-            <artifactId>processors</artifactId>
+            <artifactId>plsql-gen</artifactId>
             <version>${project.parent.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- Lombok is also needed here if you use Lombok annotations in CLI classes -->
+        <!-- Lombok is also needed here if you use Lombok annotations in E2E tests classes -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -60,7 +60,7 @@
                         <!-- Our processor second (runs after Lombok) -->
                         <path>
                             <groupId>com.plsql.tools</groupId>
-                            <artifactId>processors</artifactId>
+                            <artifactId>plsql-gen</artifactId>
                             <version>${project.parent.version}</version>
                         </path>
                         <!-- Include core for processor dependencies -->
@@ -89,7 +89,7 @@
                 </configuration>
             </plugin>
 
-            <!-- For running the CLI easily -->
+            <!-- For running the E2E tests easily -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

@@ -14,7 +14,7 @@ import java.util.Random;
 public class Main {
     public static final String url = "jdbc:oracle:thin:@//localhost:1521/FREEPDB1";
     public static final String userName = "SYSTEM";
-    public static final String password = "admin";
+    public static final String password = "adminadmin";
 
     public static void main(String[] args) throws SQLException {
         var connectionProperties = new Properties();

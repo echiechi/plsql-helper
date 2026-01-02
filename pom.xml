@@ -31,7 +31,7 @@
     <modules>
         <module>plsql-core</module>
         <module>plsql-e2e</module>
-        <module>processors</module>
+        <module>plsql-gen</module>
     </modules>
 
     <dependencyManagement>
