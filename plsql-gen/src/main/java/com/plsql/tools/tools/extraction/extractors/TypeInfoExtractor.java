@@ -4,6 +4,7 @@ import com.plsql.tools.ProcessingContext;
 import com.plsql.tools.tools.extraction.info.TypeInfo;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -12,6 +13,7 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TypeInfoExtractor {
     private final Types typeUtils;
@@ -40,13 +42,25 @@ public class TypeInfoExtractor {
         var typeInfo = new TypeInfo();
         typeInfo.setMirror(field);
         typeInfo.setRawType(field.asElement());
+        boolean isRecord = field.asElement().getKind() == ElementKind.RECORD;
+        AtomicBoolean isWrappedRecord = new AtomicBoolean(false);
         if (!field.getTypeArguments().isEmpty()) {
             extractWrappedType(field).ifPresent(t -> {
                 typeInfo.setWrappedType(t);
                 typeInfo.setRawWrappedType(typeUtils.asElement(t));
+                isWrappedRecord.set(typeInfo.getRawWrappedType().getKind() == ElementKind.RECORD);
             });
         }
+        typeInfo.setIsRecord(isRecord || isWrappedRecord.get());
         return typeInfo;
+    }
+
+    public DeclaredType getDeclaredType(String type) {
+        return typeUtils.getDeclaredType(getTypeElement(type));
+    }
+
+    public TypeElement getTypeElement(String type) {
+        return elementsUtils.getTypeElement(type);
     }
 
     public boolean isCollection(TypeMirror type) {
@@ -57,7 +71,11 @@ public class TypeInfoExtractor {
         return isAssignableFrom(type, Optional.class.getCanonicalName());
     }
 
-    private boolean isAssignableFrom(TypeMirror type, String baseTypeName) {
+    public TypeMirror eraseType(TypeMirror type) {
+        return typeUtils.erasure(type);
+    }
+
+    public boolean isAssignableFrom(TypeMirror type, String baseTypeName) {
         TypeElement baseElement = elementsUtils.getTypeElement(baseTypeName);
         if (baseElement == null) {
             return false;

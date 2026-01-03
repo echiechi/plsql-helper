@@ -249,6 +249,20 @@ public enum TypeMapper {
         };
     }
 
+    public TypeMapper mapToWrapper() {
+        return switch (this) {
+            case BYTE -> BYTE_WRAPPER;
+            case SHORT -> SHORT_WRAPPER;
+            case INTEGER -> INTEGER_WRAPPER;
+            case LONG -> LONG_WRAPPER;
+            case FLOAT -> FLOAT_WRAPPER;
+            case DOUBLE -> DOUBLE_WRAPPER;
+            case BOOLEAN -> BOOLEAN_WRAPPER;
+            case CHARACTER -> CHARACTER_WRAPPER;
+            default -> null;
+        };
+    }
+
     @Override
     public String toString() {
         return displayName;

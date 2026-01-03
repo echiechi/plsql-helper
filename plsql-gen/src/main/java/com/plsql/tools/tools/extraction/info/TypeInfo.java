@@ -3,7 +3,6 @@ package com.plsql.tools.tools.extraction.info;
 import com.plsql.tools.enums.TypeMapper;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.type.TypeMirror;
 
 public class TypeInfo {
@@ -11,16 +10,18 @@ public class TypeInfo {
     private Element rawType;
     private TypeMirror wrappedType;
     private Element rawWrappedType;
+    private boolean isRecord;
 
     public boolean isSimple() {
         return TypeMapper.isSimple(typeAsString());
     }
 
     public boolean isRecord() {
-        return rawType.getKind() == ElementKind.RECORD
-                || (rawWrappedType != null && rawWrappedType.getKind() == ElementKind.RECORD);
+        return isRecord;
     }
-
+    public void setIsRecord(boolean isRecord) {
+        this.isRecord = isRecord;
+    }
     public TypeMapper asTypeMapper() {
         return TypeMapper.fromSimpleName(typeAsString());
     }

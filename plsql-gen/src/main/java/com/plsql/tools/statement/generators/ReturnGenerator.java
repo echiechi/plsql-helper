@@ -11,6 +11,7 @@ import com.plsql.tools.tools.extraction.info.ReturnElementInfo;
 import com.plsql.tools.utils.CaseConverter;
 import org.stringtemplate.v4.ST;
 
+import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 import static com.plsql.tools.enums.TypeMapper.CHARACTER;
 import static com.plsql.tools.enums.TypeMapper.CHARACTER_WRAPPER;
 import static com.plsql.tools.tools.CodeGenConstants.*;
+import static com.plsql.tools.tools.Tools.defaultInitTypeForList;
 
 public class ReturnGenerator implements Generator {
     // TODO: less string literals and more in constants ? create a class for this purpose with methods extr ?
@@ -205,11 +207,13 @@ public class ReturnGenerator implements Generator {
                         "\n" + addObjectToList
         );
         String renderedTemplate = template.render();
+        TypeMirror listType = extractor.eraseType(returnElementInfo.getTypeInfo().getMirror());
+        // init list/set
         var listInit = String.format("%s<%s> %s = new %s<>();",
-                java.util.List.class.getCanonicalName(),
+                listType.toString(),
                 returnElementInfo.getTypeInfo().wrappedTypeAsString(),
                 variableName(defaultReturnName),
-                java.util.ArrayList.class.getCanonicalName());
+                defaultInitTypeForList(listType));
         return listInit + "\n" + renderedTemplate;
     }
 

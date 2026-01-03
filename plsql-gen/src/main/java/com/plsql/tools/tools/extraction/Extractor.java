@@ -75,4 +75,7 @@ public class Extractor {
         return composedElementExtractor.convertInto(record, typeInfo);
     }
 
+    public TypeMirror eraseType(TypeMirror typeMirror) {
+        return typeInfoExtractor.eraseType(typeMirror);
+    }
 }

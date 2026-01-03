@@ -23,13 +23,10 @@ import java.util.stream.Collectors;
 @SupportedAnnotationTypes({
         "com.plsql.tools.annotations.Package",
         "com.plsql.tools.annotations.PlsqlCallable",
-        "com.plsql.tools.annotations.Function",
         "com.plsql.tools.annotations.Record"
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class PLSQLAnnotationProcessor extends AbstractProcessor {
-    // TODO : create a cache also of templates => new Obj() obj.setName(rs.getString("colName")); ....
-    // TODO : Potential recursion problem fix no nested classes of the same type
     // TODO : handle primitive type as return : throw exception and error message ?
     // TODO : handle STREAM from resultSet
     // TODO : look into n+1 problem

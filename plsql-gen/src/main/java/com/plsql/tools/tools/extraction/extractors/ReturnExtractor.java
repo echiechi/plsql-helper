@@ -54,9 +54,25 @@ public class ReturnExtractor {
             ExecutableElement method,
             Output output
     ) {
-        DeclaredType returnType = (DeclaredType) method.getReturnType();
-        ReturnElementInfo returnInfo = createReturnElementInfo(returnType, output);
-        return List.of(returnInfo);
+        // check for primitive return value:
+        var type = TypeMapper
+                .fromSimpleName(getReturnTypeKindName(method));
+        DeclaredType returnType;
+        if (method.getReturnType() instanceof DeclaredType) {
+            returnType = (DeclaredType) method.getReturnType();
+        } else if (type != null) {
+            returnType = typeInfoExtractor.getDeclaredType(type.mapToWrapper().getDisplayName());
+        } else {
+            throw new IllegalStateException("return type is not supported " + method.getReturnType());
+        }
+        return List.of(createReturnElementInfo(returnType, output));
+    }
+
+    private static String getReturnTypeKindName(ExecutableElement method) {
+        if (method.getReturnType().getKind() == null) {
+            return "";
+        }
+        return method.getReturnType().getKind().toString().toLowerCase();
     }
 
     private List<ReturnElementInfo> extractMultipleOutputs(

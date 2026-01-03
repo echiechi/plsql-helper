@@ -8,6 +8,7 @@ import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.example.DataSources;
 
 import java.util.List;
+import java.util.Set;
 
 @Package(name = "pkg_customer_management")
 public abstract class CustomerService2 extends DataSourceAware {
@@ -25,7 +26,13 @@ public abstract class CustomerService2 extends DataSourceAware {
     @PlsqlCallable(name = "insert_customer", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_return"))
     public abstract List<Customer> insertCustomerObject(int test);
 
+    @PlsqlCallable(name = "insert_customer", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_return"))
+    public abstract int insertCustomerObject(int test, int test2);
+
     @PlsqlCallable(name = "get_all_customers", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_return"))
     public abstract List<CustomerGet> getAllCustomerObject(int test);
+
+    @PlsqlCallable(name = "get_all_customers", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_return"))
+    public abstract Set<CustomerGet> getAllCustomerObject(int test, int test2);
 
 }
