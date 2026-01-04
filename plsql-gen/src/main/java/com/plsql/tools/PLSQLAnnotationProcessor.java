@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class PLSQLAnnotationProcessor extends AbstractProcessor {
     // TODO : handle primitive type as return : throw exception and error message ?
-    // TODO : handle STREAM from resultSet
-    // TODO : look into n+1 problem
     private Filer filer;
     private ProcessingContext context;
     private RecordProcessor recordProcessor;

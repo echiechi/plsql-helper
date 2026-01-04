@@ -15,12 +15,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;
 
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.VariableElement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.plsql.tools.templates.Templates.FUNCTION_METHOD_TEMPLATE;
-import static com.plsql.tools.templates.Templates.PROCEDURE_METHOD_TEMPLATE;
+import static com.plsql.tools.templates.Templates.*;
 import static com.plsql.tools.tools.CodeGenConstants.RETURN_VAR;
 import static com.plsql.tools.tools.CodeGenConstants.variableName;
 import static com.plsql.tools.tools.Tools.isNullOrEmpty;
@@ -119,11 +119,13 @@ public class CallableGenerator {
         context.logInfo("Build method template...");
 
         return buildMethodTemplate(
-                plsqlCallableAnnotation.type() == CallableType.PROCEDURE ? PROCEDURE_METHOD_TEMPLATE : FUNCTION_METHOD_TEMPLATE,
+                plsqlCallableAnnotation.type() == CallableType.PROCEDURE,
                 procedureCallStatement,
                 methodToProcess.method().getReturnType().toString(),
                 methodToProcess.method().getSimpleName().toString(),
                 methodToProcess.method().getParameters().stream().map(v -> String.format("%s %s", v.asType(), v.getSimpleName()))
+                        .collect(Collectors.joining(", ")),
+                methodToProcess.method().getParameters().stream().map(VariableElement::getSimpleName)
                         .collect(Collectors.joining(", ")),
                 plsqlCallableAnnotation.dataSource(),
                 String.format("%s_%s", packageName, procedureName),
@@ -134,35 +136,50 @@ public class CallableGenerator {
     }
 
     private String buildMethodTemplate(
-            String template,
+            boolean isProcedure,
             String procedureCall,
             String returnType,
             String methodName,
             String parameters,
+            String paramNames,
             String dataSource,
             String procedureName,
             String boundGeneratedStatements,
             String registeredOutParameters,
             String resultSetsExtractionStatements) {
-        ST templateBuilder = new ST(template);
-        templateBuilder.add(TemplateParams.STATEMENT_STATIC_CALL.name(), procedureCall);
+        String parametersWithConnection = !parameters.isEmpty() ? "java.sql.Connection cnx, " + parameters : "java.sql.Connection cnx";
+        String paramNamesWithConnection = !paramNames.isEmpty() ? "cnx, " + paramNames : "cnx";
 
-        templateBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);
-
-        templateBuilder.add(TemplateParams.METHOD_NAME.name(), methodName);
-        templateBuilder.add(TemplateParams.PARAMETERS.name(), parameters);
-        templateBuilder.add(TemplateParams.DATA_SOURCE.name(), dataSource);
-        templateBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(), procedureName);
-        templateBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() || !isVoid(returnType) ? "int pos = 1;" : "");
-        templateBuilder.add(TemplateParams.STATEMENT_POPULATION.name(), boundGeneratedStatements);
-        templateBuilder.add(TemplateParams.REGISTER_OUT_PARAM.name(),
+        var methodInnerTrx = isProcedure ? PROCEDURE_METHOD_WITHIN_TRANSACTION_TEMPLATE : FUNCTION_METHOD_WITHIN_TRANSACTION_TEMPLATE;
+        ST methodInnerTrxBuilder = new ST(methodInnerTrx);
+        methodInnerTrxBuilder.add(TemplateParams.STATEMENT_STATIC_CALL.name(), procedureCall);
+        methodInnerTrxBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);
+        methodInnerTrxBuilder.add(TemplateParams.METHOD_NAME.name(), methodName);
+        methodInnerTrxBuilder.add(TemplateParams.PARAMETERS.name(), parametersWithConnection);
+        methodInnerTrxBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(), procedureName);
+        methodInnerTrxBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() || !isVoid(returnType) ? "int pos = 1;" : "");
+        methodInnerTrxBuilder.add(TemplateParams.STATEMENT_POPULATION.name(), boundGeneratedStatements);
+        methodInnerTrxBuilder.add(TemplateParams.REGISTER_OUT_PARAM.name(),
                 isVoid(returnType) ? "" : registeredOutParameters);
-        templateBuilder.add(TemplateParams.RESULT_SET_EXTRACTION.name(), isVoid(returnType) ? "" : resultSetsExtractionStatements);
-
-        templateBuilder.add(TemplateParams.RETURN_STATEMENT.name(),
+        methodInnerTrxBuilder.add(TemplateParams.RESULT_SET_EXTRACTION.name(), isVoid(returnType) ? "" : resultSetsExtractionStatements);
+        methodInnerTrxBuilder.add(TemplateParams.RETURN_STATEMENT.name(),
                 isNullOrEmpty(returnType) || isVoid(returnType) ? "" :
                         String.format("return %s;", variableName(RETURN_VAR)));
 
-        return templateBuilder.render();
+        ST methodTemplateBuilder = new ST(PROCEDURE_METHOD_TEMPLATE);
+
+        methodTemplateBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);
+        methodTemplateBuilder.add(TemplateParams.METHOD_NAME.name(), methodName);
+        methodTemplateBuilder.add(TemplateParams.PARAMETERS.name(), parameters);
+        methodTemplateBuilder.add(TemplateParams.DATA_SOURCE.name(), dataSource);
+        methodTemplateBuilder.add(TemplateParams.TRANSACTIONAL_METHOD.name(),
+                isVoid(returnType) ?
+                        String.format("%s(%s);", methodName, paramNamesWithConnection)
+                        :
+                        String.format("return %s(%s);", methodName, paramNamesWithConnection)
+        );
+
+        return methodTemplateBuilder.render() + "\n" +
+                methodInnerTrxBuilder.render();
     }
 }

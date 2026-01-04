@@ -9,6 +9,7 @@ import com.plsql.tools.annotations.PlsqlParam;
 import com.plsql.tools.enums.CallableType;
 import com.plsql.tools.example.DataSources;
 
+import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -93,5 +94,7 @@ public abstract class CustomerService extends DataSourceAware {
             dataSource = DataSources.MY_DS,
             type = CallableType.FUNCTION)
     public abstract String getCustomerFullName(@PlsqlParam("p_customer_id") long id);
+
+    public abstract String getCustomerFullName(Connection cnx, long id);
 
 }
