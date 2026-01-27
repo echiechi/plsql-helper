@@ -16,12 +16,18 @@ public class TypeInfo {
         return TypeMapper.isSimple(typeAsString());
     }
 
+    public boolean isWrappedSimple() {
+        return TypeMapper.isSimple(wrappedTypeAsString());
+    }
+
     public boolean isRecord() {
         return isRecord;
     }
+
     public void setIsRecord(boolean isRecord) {
         this.isRecord = isRecord;
     }
+
     public TypeMapper asTypeMapper() {
         return TypeMapper.fromSimpleName(typeAsString());
     }

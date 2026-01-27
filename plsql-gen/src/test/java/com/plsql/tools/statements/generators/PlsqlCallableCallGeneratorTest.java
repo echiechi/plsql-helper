@@ -1,4 +1,4 @@
-package com.plsql.tools.statement.generators;
+package com.plsql.tools.statements.generators;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

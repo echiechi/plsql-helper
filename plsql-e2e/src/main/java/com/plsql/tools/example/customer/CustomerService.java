@@ -12,6 +12,7 @@ import com.plsql.tools.example.DataSources;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Package(name = "pkg_customer_management")
@@ -59,6 +60,9 @@ public abstract class CustomerService extends DataSourceAware {
     @PlsqlCallable(name = "get_customer_by_id", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_data"))
     public abstract Optional<CustomerGet> getCustomerById(@PlsqlParam("p_customer_id") long id);
 
+    @PlsqlCallable(name = "get_customer_by_id2", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_data"))
+    public abstract List<CustomerGet> getAllCustomers2(); // TODO: handle better same method name/ same proc stock name in different methods
+
     @PlsqlCallable(name = "get_customers_by_criteria", dataSource = DataSources.MY_DS, outputs = @Output(value = "p_customer_cursor"))
     public abstract CustomerGet getCustomerByCrit(@PlsqlParam("p_last_name")
                                                   String lastName,
@@ -84,7 +88,7 @@ public abstract class CustomerService extends DataSourceAware {
             @PlsqlParam("p_last_name") String lastName,
             @PlsqlParam("p_email") String email,
             @PlsqlParam("p_phone") String phone,
-            @PlsqlParam("p_is_active") char isActive,
+            @PlsqlParam("p_is_active") Character isActive,
             @PlsqlParam("p_is_premium") char isPremium,
             @PlsqlParam("p_last_login") LocalDateTime lastLogin
     );

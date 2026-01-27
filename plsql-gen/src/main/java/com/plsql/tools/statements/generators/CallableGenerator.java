@@ -1,11 +1,11 @@
-package com.plsql.tools.statement.generators;
+package com.plsql.tools.statements.generators;
 
 import com.plsql.tools.ProcessingContext;
 import com.plsql.tools.annotations.Package;
 import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.enums.CallableType;
 import com.plsql.tools.processors.MethodToProcess;
-import com.plsql.tools.statement.CallGenerator;
+import com.plsql.tools.statements.CallGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.tools.extraction.Extractor;
 import com.plsql.tools.tools.extraction.extractors.ExtractorValidator;
@@ -21,8 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.plsql.tools.templates.Templates.*;
-import static com.plsql.tools.tools.CodeGenConstants.RETURN_VAR;
-import static com.plsql.tools.tools.CodeGenConstants.variableName;
+import static com.plsql.tools.tools.CodeGenConstants.*;
 import static com.plsql.tools.tools.Tools.isNullOrEmpty;
 import static com.plsql.tools.tools.Tools.isVoid;
 
@@ -66,9 +65,9 @@ public class CallableGenerator {
         context.logDebug("Callable Type: ", plsqlCallableAnnotation.type());
 
         // init generators :
-        var paramBinderGenerator = new PlsqlParamBinderGenerator(methodParameters);
+        var paramBinderGenerator = new PlsqlParamBinderGenerator(methodParameters, plsqlCallableAnnotation.type() == CallableType.FUNCTION);
         var outputRegistrationGenerator = new OutputRegistrationGenerator(extractedReturnInfo);
-        var returnGenerator = new ReturnGenerator(extractedReturnInfo, context);
+        var returnGenerator = new ReturnGenerator(extractedReturnInfo, extractor);
 
         CallGenerator callable;
         if (plsqlCallableAnnotation.type() == CallableType.PROCEDURE) {
@@ -86,7 +85,6 @@ public class CallableGenerator {
             } else if (outputs.isEmpty()) {
                 throw new IllegalStateException("A Function must have a return (@Output)");
             }
-            paramBinderGenerator.setPreIncrement(true);
             if (extractedReturnInfo.isEmpty()) {
                 throw new IllegalStateException("A Function must have a return it can not be void");
             }
@@ -157,7 +155,9 @@ public class CallableGenerator {
         methodInnerTrxBuilder.add(TemplateParams.METHOD_NAME.name(), methodName);
         methodInnerTrxBuilder.add(TemplateParams.PARAMETERS.name(), parametersWithConnection);
         methodInnerTrxBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(), procedureName);
-        methodInnerTrxBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() || !isVoid(returnType) ? "int pos = 1;" : "");
+        methodInnerTrxBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() || !isVoid(returnType) ?
+                String.format("int %s = 1;", POSITION_VAR)
+                : "");
         methodInnerTrxBuilder.add(TemplateParams.STATEMENT_POPULATION.name(), boundGeneratedStatements);
         methodInnerTrxBuilder.add(TemplateParams.REGISTER_OUT_PARAM.name(),
                 isVoid(returnType) ? "" : registeredOutParameters);

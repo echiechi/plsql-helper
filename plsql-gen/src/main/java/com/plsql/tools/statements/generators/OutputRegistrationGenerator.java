@@ -1,12 +1,16 @@
-package com.plsql.tools.statement.generators;
+package com.plsql.tools.statements.generators;
 
 import com.plsql.tools.enums.TypeMapper;
-import com.plsql.tools.statement.Generator;
+import com.plsql.tools.statements.Generator;
 import com.plsql.tools.tools.CodeGenConstants;
 import com.plsql.tools.tools.extraction.info.ReturnElementInfo;
 
 import java.sql.JDBCType;
 import java.util.List;
+
+import static com.plsql.tools.tools.GenTools.incrementVar;
+import static com.plsql.tools.tools.GenTools.registerOutParameter;
+import static com.plsql.tools.tools.CodeGenConstants.STATEMENT_VAR;
 
 public class OutputRegistrationGenerator implements Generator {
 
@@ -18,25 +22,25 @@ public class OutputRegistrationGenerator implements Generator {
 
     @Override
     public String generate() {
-        if (outputList == null) {
+        if (outputList == null || outputList.isEmpty()) {
             return "";
         }
         StringBuilder statements = new StringBuilder();
-        String pos = "%s++".formatted(CodeGenConstants.POSITION_VAR);
+        String pos = incrementVar(CodeGenConstants.POSITION_VAR);
         for (int i = 0; i < outputList.size(); i++) {
             var output = outputList.get(i);
             if (i == outputList.size() - 1) {
                 pos = CodeGenConstants.POSITION_VAR;
             }
-            TypeMapper type = null;
+            TypeMapper type;
             if (output.getTypeInfo().isWrapped()) {
-                type = TypeMapper.fromSimpleName(output.getTypeInfo().getWrappedType().toString());
-            }
-            if (type == null) {
+                type = output.getTypeInfo().wrappedTypeAsTypeMapper();
+            } else {
                 type = output.getTypeInfo().asTypeMapper();
             }
-            statements.append(String.format("stmt.registerOutParameter(%s, JDBCType.%s);", pos, (type == null) ?
-                            JDBCType.REF_CURSOR.name() : type.getJdbcType().name()))
+            var jdbcType = (type == null) ?
+                    JDBCType.REF_CURSOR.name() : type.getJdbcType().name();
+            statements.append(registerOutParameter(STATEMENT_VAR, pos, jdbcType))
                     .append("\n");
         }
         return statements.toString();

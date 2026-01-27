@@ -18,7 +18,6 @@
     <description>Contains core logic and database interactions for PL/SQL tools</description>
     <dependencies>
         <!-- No external dependencies - keep core lightweight -->
-        <!-- Testing TODO: ADD TESTING HERE -->
     </dependencies>
 
     <build>

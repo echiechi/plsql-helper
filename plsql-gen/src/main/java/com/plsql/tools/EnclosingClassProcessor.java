@@ -2,7 +2,7 @@ package com.plsql.tools;
 
 import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.processors.MethodToProcess;
-import com.plsql.tools.statement.generators.CallableGenerator;
+import com.plsql.tools.statements.generators.CallableGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import com.plsql.tools.templates.Templates;
 import com.plsql.tools.tools.Tools;

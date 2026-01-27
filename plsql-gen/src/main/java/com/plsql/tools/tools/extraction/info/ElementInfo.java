@@ -3,6 +3,7 @@ package com.plsql.tools.tools.extraction.info;
 public class ElementInfo {
     protected TypeInfo typeInfo;
     protected String name;
+    protected String alias;
 
     public ElementInfo() {
     }
@@ -28,11 +29,20 @@ public class ElementInfo {
         this.name = name;
     }
 
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
     @Override
     public String toString() {
         return "ElementInfo{" +
                 "typeInfo=" + typeInfo +
                 ", name='" + name + '\'' +
+                ", alias='" + alias + '\'' +
                 '}';
     }
 }

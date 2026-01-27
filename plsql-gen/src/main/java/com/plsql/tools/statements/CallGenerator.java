@@ -1,7 +1,7 @@
-package com.plsql.tools.statement;
+package com.plsql.tools.statements;
 
-import com.plsql.tools.statement.params.Parameter;
-import com.plsql.tools.statement.params.ParameterType;
+import com.plsql.tools.statements.params.Parameter;
+import com.plsql.tools.statements.params.ParameterType;
 import com.plsql.tools.utils.CaseConverter;
 
 import java.util.ArrayList;

@@ -1,6 +1,6 @@
-package com.plsql.tools.statement.generators;
+package com.plsql.tools.statements.generators;
 
-import com.plsql.tools.statement.CallGenerator;
+import com.plsql.tools.statements.CallGenerator;
 import com.plsql.tools.templates.TemplateParams;
 import org.stringtemplate.v4.ST;
 

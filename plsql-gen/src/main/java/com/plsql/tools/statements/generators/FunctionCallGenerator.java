@@ -1,11 +1,11 @@
-package com.plsql.tools.statement.generators;
+package com.plsql.tools.statements.generators;
 
-import com.plsql.tools.statement.CallGenerator;
+import com.plsql.tools.statements.CallGenerator;
 import org.stringtemplate.v4.ST;
 
 import static com.plsql.tools.templates.FunctionCallParams.*;
 
-public class FunctionCallGenerator extends CallGenerator { // TODO : can add interface for procedure/function call
+public class FunctionCallGenerator extends CallGenerator {
     public static final String FUNCTION_CALL_TEMPLATE = """
             public static final String <FUNCTION_FULL_NAME><SUFFIX> = "{ ? = call <PACKAGE_CALL_NAME><FUNCTION_CALL_NAME>(<FUNCTION_PARAMETERS>) }";
             """;

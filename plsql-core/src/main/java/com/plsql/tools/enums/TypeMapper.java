@@ -259,7 +259,7 @@ public enum TypeMapper {
             case DOUBLE -> DOUBLE_WRAPPER;
             case BOOLEAN -> BOOLEAN_WRAPPER;
             case CHARACTER -> CHARACTER_WRAPPER;
-            default -> null;
+            default -> this;
         };
     }
 

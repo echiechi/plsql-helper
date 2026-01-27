@@ -10,6 +10,8 @@ public class CodeGenConstants {
     public static final String STATEMENT_VAR = "stmt";
     public static final String RETURN_VAR = "result";
 
+    public static final String EMPTY_METHOD = "empty()";
+
     // Method prefixes
     public static final String GETTER_PREFIX = "get";
     public static final String SETTER_PREFIX = "set";

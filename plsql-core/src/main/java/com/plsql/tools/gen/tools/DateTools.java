@@ -38,6 +38,10 @@ public class DateTools {
         return date != null ? date.toLocalDate() : null;
     }
 
+    public static java.util.Date toDate(java.sql.Date date) {
+        return date != null ? new java.util.Date(date.getTime()) : null;
+    }
+
     public static LocalDateTime toLocalDateTime(java.sql.Timestamp date) {
         return date != null ? date.toLocalDateTime() : null;
     }

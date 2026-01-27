@@ -1,8 +1,10 @@
 package com.plsql.tools.tools.extraction.extractors;
 
 import com.plsql.tools.ProcessingContext;
+import com.plsql.tools.annotations.PlsqlParam;
 import com.plsql.tools.tools.Tools;
 import com.plsql.tools.tools.extraction.info.AttachedElementInfo;
+import com.plsql.tools.utils.CaseConverter;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -69,6 +71,12 @@ public class ClassInfoExtractor {
         var attachedElement = new AttachedElementInfo();
         attachedElement.setName(extractNameAsStr(field));
         attachedElement.setTypeInfo(typeInfoExtractor.extractTypeInfo(field));
+        var annotation = field.getAnnotation(PlsqlParam.class);
+        if (annotation != null) {
+            attachedElement.setAlias(annotation.value());
+        } else {
+            attachedElement.setAlias(CaseConverter.toSnakeCase(extractNameAsStr(field)));
+        }
 
         if (kind == ElementKind.RECORD) {
             populateRecordAccessors(attachedElement, metaData.methods());
