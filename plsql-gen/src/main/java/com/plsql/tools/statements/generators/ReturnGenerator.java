@@ -62,7 +62,7 @@ public class ReturnGenerator implements Generator {
         var returnTypeDetector = new ReturnTypeDetector(extractor);
         return switch (returnTypeDetector.categorize(returnElement)) {
             case SIMPLE -> new SimpleReturnHandler();
-            case COMPOSED -> new ComposedReturnHandler(extractor);
+            case COMPOSED -> ComposedReturnHandler.builder().extractor(extractor).build();
             case OPTIONAL_SIMPLE, OPTIONAL_COMPOSED -> new OptionalReturnHandler(extractor);
             case COLLECTION -> new CollectionReturnHandler(extractor);
         };

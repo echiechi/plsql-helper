@@ -6,6 +6,7 @@ import com.plsql.tools.tools.extraction.info.AttachedElementInfo;
 import com.plsql.tools.tools.extraction.info.ComposedElementInfo;
 import com.plsql.tools.tools.extraction.info.ElementInfo;
 import com.plsql.tools.tools.extraction.info.ReturnElementInfo;
+import lombok.Getter;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
@@ -13,6 +14,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.List;
 
 public class Extractor {
+    @Getter
     private final ProcessingContext context;
     private final TypeInfoExtractor typeInfoExtractor;
     private final ClassInfoExtractor classInfoExtractor;
@@ -32,10 +34,6 @@ public class Extractor {
         returnExtractor = new ReturnExtractor(typeInfoExtractor, composedElementExtractor, context.getCache());
     }
 
-    public ProcessingContext getContext() {
-        return context;
-    }
-
     public List<AttachedElementInfo> getAttachedElements(TypeMirror typeMirror) {
         return context.getCache().get(typeMirror).orElse(List.of());
     }
@@ -46,6 +44,14 @@ public class Extractor {
 
     public boolean isOptional(TypeMirror type) {
         return typeInfoExtractor.isOptional(type);
+    }
+
+    public boolean isList(TypeMirror type) {
+        return typeInfoExtractor.isList(type);
+    }
+
+    public boolean isSet(TypeMirror type) {
+        return typeInfoExtractor.isSet(type);
     }
 
     public void extractClassInfoAndAlimCache(Element classOrRecord) {

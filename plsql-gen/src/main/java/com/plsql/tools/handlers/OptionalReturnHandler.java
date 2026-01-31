@@ -50,13 +50,15 @@ public class OptionalReturnHandler implements ReturnTypeHandler {
             var optionalAssign = GenTools.optionalAssign(
                     variableName(defaultReturnName),
                     variableName(wrappedVariableName));
-            ComposedReturnHandler composedReturnHandler = new ComposedReturnHandler(
-                    extractor,
-                    false,
-                    true,
-                    false,
-                    true,
-                    optionalAssign);
+            ComposedReturnHandler composedReturnHandler = ComposedReturnHandler
+                    .builder()
+                    .extractor(extractor)
+                    .isToAssign(false)
+                    .isWrapped(true)
+                    .isInitObject(false)
+                    .isReturnSomething(true)
+                    .toAppendToStatements(optionalAssign)
+                    .build();
             var optionalInit = GenTools.optionalInit(
                     returnElement.getTypeInfo().wrappedTypeAsString(),
                     variableName(defaultReturnName));

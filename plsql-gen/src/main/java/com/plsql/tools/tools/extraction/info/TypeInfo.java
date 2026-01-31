@@ -1,10 +1,15 @@
 package com.plsql.tools.tools.extraction.info;
 
 import com.plsql.tools.enums.TypeMapper;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
 
+@Data 
 public class TypeInfo {
     private TypeMirror mirror;
     private Element rawType;
@@ -19,15 +24,7 @@ public class TypeInfo {
     public boolean isWrappedSimple() {
         return TypeMapper.isSimple(wrappedTypeAsString());
     }
-
-    public boolean isRecord() {
-        return isRecord;
-    }
-
-    public void setIsRecord(boolean isRecord) {
-        this.isRecord = isRecord;
-    }
-
+    
     public TypeMapper asTypeMapper() {
         return TypeMapper.fromSimpleName(typeAsString());
     }
@@ -43,50 +40,9 @@ public class TypeInfo {
     public String typeAsString() {
         return mirror.toString();
     }
-
-    public TypeMirror getMirror() {
-        return mirror;
-    }
-
-    public void setMirror(TypeMirror mirror) {
-        this.mirror = mirror;
-    }
-
-    public Element getRawType() {
-        return rawType;
-    }
-
-    public void setRawType(Element rawType) {
-        this.rawType = rawType;
-    }
-
-    public TypeMirror getWrappedType() {
-        return wrappedType;
-    }
-
-    public void setWrappedType(TypeMirror wrappedType) {
-        this.wrappedType = wrappedType;
-    }
-
+    
     public boolean isWrapped() {
         return wrappedType != null;
     }
-
-    public Element getRawWrappedType() {
-        return rawWrappedType;
-    }
-
-    public void setRawWrappedType(Element rawWrappedType) {
-        this.rawWrappedType = rawWrappedType;
-    }
-
-    @Override
-    public String toString() {
-        return "TypeInfo{" +
-                "mirror=" + mirror +
-                ", rawType=" + rawType +
-                ", wrappedType=" + wrappedType +
-                ", rawWrappedType=" + rawWrappedType +
-                '}';
-    }
+    
 }

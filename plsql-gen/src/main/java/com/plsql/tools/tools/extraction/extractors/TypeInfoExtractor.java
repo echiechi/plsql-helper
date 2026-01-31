@@ -12,7 +12,9 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TypeInfoExtractor {
@@ -51,7 +53,7 @@ public class TypeInfoExtractor {
                 isWrappedRecord.set(typeInfo.getRawWrappedType().getKind() == ElementKind.RECORD);
             });
         }
-        typeInfo.setIsRecord(isRecord || isWrappedRecord.get());
+        typeInfo.setRecord(isRecord || isWrappedRecord.get());
         return typeInfo;
     }
 
@@ -66,7 +68,12 @@ public class TypeInfoExtractor {
     public boolean isCollection(TypeMirror type) {
         return isAssignableFrom(type, Collection.class.getCanonicalName());
     }
-
+    public boolean isList(TypeMirror type) {
+        return isAssignableFrom(type, List.class.getCanonicalName());
+    }
+    public boolean isSet(TypeMirror type) {
+        return isAssignableFrom(type, Set.class.getCanonicalName());
+    }
     public boolean isOptional(TypeMirror type) {
         return isAssignableFrom(type, Optional.class.getCanonicalName());
     }

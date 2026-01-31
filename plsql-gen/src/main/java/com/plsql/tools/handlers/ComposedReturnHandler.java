@@ -9,6 +9,7 @@ import com.plsql.tools.tools.extraction.Extractor;
 import com.plsql.tools.tools.extraction.info.ComposedElementInfo;
 import com.plsql.tools.tools.extraction.info.ElementInfo;
 import com.plsql.tools.tools.extraction.info.ReturnElementInfo;
+import lombok.Builder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ import static com.plsql.tools.enums.TypeMapper.CHARACTER;
 import static com.plsql.tools.enums.TypeMapper.CHARACTER_WRAPPER;
 import static com.plsql.tools.tools.CodeGenConstants.*;
 
+@Builder
 public class ComposedReturnHandler implements ReturnTypeHandler {
     private static final Map<TypeMapper, Function<String, String>> TRANSFORMERS = Map.of(
             TypeMapper.DATE, GenTools::toDate,
@@ -29,13 +31,18 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
     );
     private final Extractor extractor;
     private final ReturnCodeTemplateManager returnCodeTemplateManager = new ReturnCodeTemplateManager();
+    @Builder.Default
     private boolean isInitObject = true;
+    @Builder.Default
     private boolean isToAssign = true;
+    @Builder.Default
     private boolean isWrapped = false;
+    @Builder.Default
     private boolean isReturnSomething = true;
+    @Builder.Default
     private String toAppendToStatements = "";
 
-    public ComposedReturnHandler(Extractor extractor,
+  /*  public ComposedReturnHandler(Extractor extractor,
                                  boolean isToAssign,
                                  boolean isWrapped,
                                  boolean isInitObject,
@@ -48,10 +55,10 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
         this.isReturnSomething = isReturnSomething;
         this.toAppendToStatements = toAppendToStatements;
     }
-
-    public ComposedReturnHandler(Extractor extractor) {
+*/
+    /*public ComposedReturnHandler(Extractor extractor) {
         this.extractor = extractor;
-    }
+    }*/
 
     @Override
     public boolean canHandle(ReturnElementInfo returnElement) {

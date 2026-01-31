@@ -1,10 +1,14 @@
 package com.plsql.tools.tools.extraction.info;
 
 import com.plsql.tools.annotations.Output;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class ReturnElementInfo extends ComposedElementInfo {
 
     private ElementInfo parent;
@@ -64,40 +68,5 @@ public class ReturnElementInfo extends ComposedElementInfo {
 
     public boolean hasParent() {
         return parent != null;
-    }
-
-    public Output getOutput() {
-        return output;
-    }
-
-    public void setOutput(Output output) {
-        this.output = output;
-    }
-
-    public String getPos() {
-        return pos;
-    }
-
-    public void setPos(String pos) {
-        this.pos = pos;
-    }
-
-    public ElementInfo getParent() {
-        return parent;
-    }
-
-    public void setParent(ElementInfo parent) {
-        this.parent = parent;
-    }
-
-    @Override
-    public String toString() {
-        return "ReturnElementInfo{" +
-                "parent=" + parent +
-                ", output=" + output +
-                ", pos='" + pos + '\'' +
-                ", typeInfo=" + typeInfo +
-                ", name='" + name + '\'' +
-                '}';
     }
 }

@@ -1,11 +1,16 @@
 package com.plsql.tools.tools.extraction.info;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class ComposedElementInfo extends ElementInfo {
 
     private List<AttachedElementInfo> elementInfoList = new ArrayList<>();
@@ -20,14 +25,7 @@ public class ComposedElementInfo extends ElementInfo {
 
     public ComposedElementInfo(TypeInfo typeInfo) {
         setTypeInfo(typeInfo);
-        // setName(typeInfo.getRawType().getSimpleName().toString());
-    }
-    public List<AttachedElementInfo> getElementInfoList() {
-        return elementInfoList;
-    }
-
-    public Map<TypeMirror, List<AttachedElementInfo>> getNestedElementInfo() {
-        return nestedElementInfo;
+        //TODO: delete ? setName(typeInfo.getRawType().getSimpleName().toString());
     }
 
     public void addElement(AttachedElementInfo elementInfo) {
@@ -36,21 +34,5 @@ public class ComposedElementInfo extends ElementInfo {
 
     public void addNestedElement(TypeMirror element, List<AttachedElementInfo> elementInfo) {
         nestedElementInfo.put(element, elementInfo);
-    }
-
-    public void setElementInfoList(List<AttachedElementInfo> elementInfoList) {
-        this.elementInfoList = elementInfoList;
-    }
-
-    public void setNestedElementInfo(Map<TypeMirror, List<AttachedElementInfo>> nestedElementInfo) {
-        this.nestedElementInfo = nestedElementInfo;
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + ", ComposedElementInfo{" +
-                "elementInfoList=" + elementInfoList +
-                ", nestedElementInfo=" + nestedElementInfo +
-                '}';
     }
 }
