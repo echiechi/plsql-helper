@@ -8,6 +8,7 @@ import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.annotations.PlsqlParam;
 import com.plsql.tools.enums.CallableType;
 import com.plsql.tools.example.DataSources;
+import com.plsql.tools.example.other.tests.CustomMapping;
 
 import java.sql.Connection;
 import java.time.LocalDate;
@@ -60,8 +61,8 @@ public abstract class CustomerService extends DataSourceAware {
     @PlsqlCallable(name = "get_customer_by_id", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_data"))
     public abstract Optional<CustomerGet> getCustomerById(@PlsqlParam("p_customer_id") long id);
 
-    @PlsqlCallable(name = "get_customer_by_id2", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_data"))
-    public abstract List<CustomerGet> getAllCustomers2(); // TODO: handle better same method name/ same proc stock name in different methods
+    @PlsqlCallable(name = "get_all_customers", dataSource = DataSources.MY_DS, outputs = @Output("p_customer_data"))
+    public abstract List<CustomerGet> getAllCustomers();
 
     @PlsqlCallable(name = "get_customers_by_criteria", dataSource = DataSources.MY_DS, outputs = @Output(value = "p_customer_cursor"))
     public abstract CustomerGet getCustomerByCrit(@PlsqlParam("p_last_name")

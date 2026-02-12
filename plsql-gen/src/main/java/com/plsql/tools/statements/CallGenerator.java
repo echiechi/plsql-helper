@@ -29,6 +29,10 @@ public abstract class CallGenerator implements Generator {
         withParameter(parameterName, ParameterType.IN);
     }
 
+    public String formatFullNameWithSuffix() {
+        return formatFullName() + suffix;
+    }
+
     public String generate() {
         return buildWithTemplate();
     }

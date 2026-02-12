@@ -2,7 +2,8 @@ package com.plsql.tools.handlers;
 
 import com.plsql.tools.enums.TypeMapper;
 import com.plsql.tools.templates.CodeSnippets;
-import com.plsql.tools.templates.ReturnCodeTemplateManager;
+import com.plsql.tools.templates.TemplateManager;
+import com.plsql.tools.templates.CodeSnippetsTemplatesManager;
 import com.plsql.tools.tools.CodeGenConstants;
 import com.plsql.tools.tools.GenTools;
 import com.plsql.tools.tools.extraction.Extractor;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 import static com.plsql.tools.enums.TypeMapper.CHARACTER;
 import static com.plsql.tools.enums.TypeMapper.CHARACTER_WRAPPER;
+import static com.plsql.tools.templates.CodeSnippetsTemplatesManager.PROCESS_RESULT_SET;
 import static com.plsql.tools.tools.CodeGenConstants.*;
 
 @Builder
@@ -29,8 +31,10 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
             TypeMapper.LOCAL_DATE_TIME, GenTools::toLocalDateTime,
             TypeMapper.LOCAL_TIME, GenTools::toLocalTime
     );
+
     private final Extractor extractor;
-    private final ReturnCodeTemplateManager returnCodeTemplateManager = new ReturnCodeTemplateManager();
+    private final TemplateManager<CodeSnippets.ResultSetParams> templateManager = new CodeSnippetsTemplatesManager<>();
+
     @Builder.Default
     private boolean isInitObject = true;
     @Builder.Default
@@ -41,24 +45,6 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
     private boolean isReturnSomething = true;
     @Builder.Default
     private String toAppendToStatements = "";
-
-  /*  public ComposedReturnHandler(Extractor extractor,
-                                 boolean isToAssign,
-                                 boolean isWrapped,
-                                 boolean isInitObject,
-                                 boolean isReturnSomething,
-                                 String toAppendToStatements) {
-        this.extractor = extractor;
-        this.isToAssign = isToAssign;
-        this.isWrapped = isWrapped;
-        this.isInitObject = isInitObject;
-        this.isReturnSomething = isReturnSomething;
-        this.toAppendToStatements = toAppendToStatements;
-    }
-*/
-    /*public ComposedReturnHandler(Extractor extractor) {
-        this.extractor = extractor;
-    }*/
 
     @Override
     public boolean canHandle(ReturnElementInfo returnElement) {
@@ -74,7 +60,7 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
                         + "\n" + toAppendToStatements
         );
         return (isInitObject ? initObjectToNull(returnElement) + "\n" : "") +
-                returnCodeTemplateManager.renderProcessResultSet(context);
+                templateManager.render(PROCESS_RESULT_SET, context);
     }
 
     private List<String> flattenToStatements(ComposedElementInfo composedElementInfo,
@@ -146,7 +132,7 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
         }
         for (var e : composedElementInfo.getElementInfoList()) {
             statements.add(
-                    GenTools.constructMethod(
+                    GenTools.invokeMethodFromObject(
                             variableName(composedElementInfo.getName()),
                             e.getSetter().getSimpleName().toString(),
                             variableName(e.getName())
@@ -173,7 +159,7 @@ public class ComposedReturnHandler implements ReturnTypeHandler {
 
     private String resultSetGetter(ElementInfo elementInfo) {
         var typeInfo = elementInfo.getTypeInfo();
-        String resultSet = GenTools.constructMethod(RESULT_SET_VAR,
+        String resultSet = GenTools.invokeMethodFromObject(RESULT_SET_VAR,
                 typeInfo.asTypeMapper().getJdbcGetterMethod(),
                 GenTools.literalString(elementInfo.getAlias())
         );

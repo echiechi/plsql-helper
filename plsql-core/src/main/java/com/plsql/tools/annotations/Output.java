@@ -1,5 +1,7 @@
 package com.plsql.tools.annotations;
 
+import com.plsql.tools.enums.OutputType;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

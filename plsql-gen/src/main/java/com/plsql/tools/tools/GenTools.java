@@ -37,6 +37,10 @@ public class GenTools {
         return String.join(",", args);
     }
 
+    public static String joinWithReturnToLine(String... args) {
+        return String.join(System.lineSeparator(), args);
+    }
+
     public static String join(String... toAppend) {
         return String.join("", toAppend);
     }
@@ -46,7 +50,7 @@ public class GenTools {
     }
 
     public static String appendGetter(String object, String getterName) {
-        return constructMethod(object, getterName);
+        return invokeMethodFromObject(object, getterName);
     }
 
     public static String addToCollection(String collectionName, String objectName) {
@@ -81,8 +85,12 @@ public class GenTools {
         return "%s<%s>".formatted(type, genericType);
     }
 
-    public static String constructMethod(String objectName, String methodName, String... paramNames) {
+    public static String invokeMethodFromObject(String objectName, String methodName, String... paramNames) {
         return join(joinWithDot(objectName, methodName), "(", joinWithComma(paramNames), ")");
+    }
+
+    public static String invokeMethod(String methodName, String... paramNames) {
+        return join(methodName, "(", joinWithComma(paramNames), ")");
     }
 
     public static String assignNullAndInit(String type, String objectName) {

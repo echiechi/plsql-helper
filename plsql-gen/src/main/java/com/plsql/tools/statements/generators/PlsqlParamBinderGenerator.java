@@ -123,7 +123,7 @@ public class PlsqlParamBinderGenerator implements Generator {
 
     private String bindParameter(String setter, String position, String parameter) {
         // example: stmt.setString(pos++, parameter1);
-        return constructMethod(STATEMENT_VAR, setter, position, parameter).concat(";");
+        return invokeMethodFromObject(STATEMENT_VAR, setter, position, parameter).concat(";");
     }
 
     private List<ElementGetter> flattenComposedElementInfo(

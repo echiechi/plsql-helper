@@ -1,5 +1,6 @@
 package com.plsql.tools.templates;
 
+@Deprecated
 public class Templates {
     public static final String CLASS_TEMPLATE = """
             package <PACKAGE_NAME>;
@@ -33,53 +34,9 @@ public class Templates {
                     super(dataSourceProvider);
                 }
                 
-                <METHODS:{method |  <method>
+                <METHODS:{method | <method>
                 }>
 
             }
             """;
-    public static final String PROCEDURE_METHOD_TEMPLATE = """
-            @Override
-            public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
-                DataSource ds = dataSourceProvider.getDataSource("<DATA_SOURCE>");
-                try (Connection cnx = ds.getConnection();) {
-                   <TRANSACTIONAL_METHOD>
-                } catch (SQLException | PlsqlException e) {
-                    throw new PlsqlException(e);
-                }
-            }
-            """;
-
-    public static final String PROCEDURE_METHOD_WITHIN_TRANSACTION_TEMPLATE = """
-            <STATEMENT_STATIC_CALL>
-            public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
-                try (CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)) {
-                    <INIT_POS>
-                    <STATEMENT_POPULATION>
-                    <REGISTER_OUT_PARAM>
-                    stmt.execute();
-                    <RESULT_SET_EXTRACTION>
-                    <RETURN_STATEMENT>
-                } catch (SQLException e) {
-                    throw new PlsqlException(e);
-                }
-            }
-            """;
-
-    public static final String FUNCTION_METHOD_WITHIN_TRANSACTION_TEMPLATE = """
-            <STATEMENT_STATIC_CALL>
-            public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
-                try (CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)) {
-                    <INIT_POS>
-                    <REGISTER_OUT_PARAM>
-                    <STATEMENT_POPULATION>
-                    stmt.execute();
-                    <RESULT_SET_EXTRACTION>
-                    <RETURN_STATEMENT>
-                } catch (SQLException e) {
-                    throw new PlsqlException(e);
-                }
-            }
-            """;
-
 }

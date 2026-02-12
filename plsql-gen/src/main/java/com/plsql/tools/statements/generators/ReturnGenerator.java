@@ -48,7 +48,7 @@ public class ReturnGenerator implements Generator {
             extractor
                     .getAttachedElements(parent.getTypeInfo().getMirror())
                     .forEach(a -> {
-                        var setter = GenTools.constructMethod(variableName(parent.getName()),
+                        var setter = GenTools.invokeMethodFromObject(variableName(parent.getName()),
                                 a.getSetter().getSimpleName().toString(),
                                 variableName(a.getName())
                         ).concat(";");

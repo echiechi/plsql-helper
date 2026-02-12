@@ -9,7 +9,8 @@ public class CodeGenConstants {
     public static final String RESULT_SET_VAR = "rs";
     public static final String STATEMENT_VAR = "stmt";
     public static final String RETURN_VAR = "result";
-
+    public static final String CNX_VAR = "cnx";
+    public static final String INT = "int";
     public static final String EMPTY_METHOD = "empty()";
 
     // Method prefixes

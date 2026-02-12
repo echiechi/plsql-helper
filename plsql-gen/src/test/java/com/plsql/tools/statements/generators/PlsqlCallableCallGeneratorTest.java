@@ -20,14 +20,6 @@ public class PlsqlCallableCallGeneratorTest {
     }
 
     @Test
-    public void testBuild() {
-        String buildResult = generator.build();
-        String templateResult = generator.buildWithTemplate();
-        
-        assertEquals(templateResult, buildResult);
-    }
-
-    @Test
     public void testBuildWithTemplateBasic() {
         String result = generator.buildWithTemplate();
         

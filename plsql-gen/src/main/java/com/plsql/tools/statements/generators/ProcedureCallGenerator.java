@@ -16,13 +16,6 @@ public class ProcedureCallGenerator extends CallGenerator {
     }
 
     /**
-     * Builds the SQL call statement
-     */
-    public String build() {
-        return buildWithTemplate();
-    }
-
-    /**
      * Builds the statement using StringTemplate
      */
     @Override

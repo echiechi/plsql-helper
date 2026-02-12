@@ -25,7 +25,6 @@ public class ComposedElementInfo extends ElementInfo {
 
     public ComposedElementInfo(TypeInfo typeInfo) {
         setTypeInfo(typeInfo);
-        //TODO: delete ? setName(typeInfo.getRawType().getSimpleName().toString());
     }
 
     public void addElement(AttachedElementInfo elementInfo) {

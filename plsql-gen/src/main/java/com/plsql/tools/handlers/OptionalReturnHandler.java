@@ -1,7 +1,8 @@
 package com.plsql.tools.handlers;
 
 import com.plsql.tools.templates.CodeSnippets;
-import com.plsql.tools.templates.ReturnCodeTemplateManager;
+import com.plsql.tools.templates.TemplateManager;
+import com.plsql.tools.templates.CodeSnippetsTemplatesManager;
 import com.plsql.tools.tools.CodeGenConstants;
 import com.plsql.tools.tools.GenTools;
 import com.plsql.tools.tools.extraction.Extractor;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.plsql.tools.templates.CodeSnippetsTemplatesManager.PROCESS_OPTIONAL_RESULT_SET;
 import static com.plsql.tools.tools.CodeGenConstants.variableName;
 import static com.plsql.tools.tools.CodeGenConstants.wrappedVariableName;
 
@@ -18,7 +20,7 @@ public class OptionalReturnHandler implements ReturnTypeHandler {
 
     private final Extractor extractor;
 
-    private final ReturnCodeTemplateManager returnCodeTemplateManager = new ReturnCodeTemplateManager();
+    private final TemplateManager<CodeSnippets.OptionalResultSetParams> templateManager = new CodeSnippetsTemplatesManager<>();
 
     public OptionalReturnHandler(Extractor extractor) {
         this.extractor = extractor;
@@ -42,8 +44,8 @@ public class OptionalReturnHandler implements ReturnTypeHandler {
                     CodeSnippets.OptionalResultSetParams.OBJECT_INIT_STATEMENT, variableName(returnElement.getName()),
                     CodeSnippets.OptionalResultSetParams.OPTIONAL_TYPE, Optional.class.getCanonicalName(),
                     CodeSnippets.OptionalResultSetParams.STMT_VAR_NAME, CodeGenConstants.STATEMENT_VAR);
-            return returnCodeTemplateManager
-                    .renderOptionalProcessResultSet(context);
+            return templateManager
+                    .render(PROCESS_OPTIONAL_RESULT_SET, context);
         } else {
             var defaultReturnName = returnElement.getName();
             var wrappedVariableName = wrappedVariableName(defaultReturnName);

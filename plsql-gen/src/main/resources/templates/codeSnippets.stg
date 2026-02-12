@@ -19,3 +19,65 @@ processSimpleResultSet(STMT_RESULT_TYPE, OBJECT_INIT_STATEMENT, STMT_VAR_NAME, S
 processOptionalResultSet(STMT_RESULT_TYPE, OBJECT_INIT_STATEMENT,OPTIONAL_TYPE, STMT_VAR_NAME, STMT_GETTER, POSITION) ::= <<
 <STMT_RESULT_TYPE> <OBJECT_INIT_STATEMENT> = <OPTIONAL_TYPE>.of(<STMT_VAR_NAME>.<STMT_GETTER>(<POSITION>));
 >>
+
+methodTemplate(RETURN_TYPE, METHOD_NAME, PARAMETERS, DATA_SOURCE, TRANSACTIONAL_METHOD) ::= <<
+@Override
+public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
+    DataSource ds = dataSourceProvider.getDataSource("<DATA_SOURCE>");
+    try (Connection cnx = ds.getConnection();) {
+        <TRANSACTIONAL_METHOD>
+    } catch (SQLException | PlsqlException e) {
+        throw new PlsqlException(e);
+    }
+}
+>>
+
+procedureMethodTemplate(STATEMENT_STATIC_CALL,
+RETURN_TYPE, METHOD_NAME,
+PARAMETERS,
+PROCEDURE_FULL_NAME,
+INIT_POS,
+STATEMENT_POPULATION,
+REGISTER_OUT_PARAM,
+RESULT_SET_EXTRACTION,
+RETURN_STATEMENT
+) ::=<<
+<STATEMENT_STATIC_CALL>
+public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
+    try (CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)) {
+        <INIT_POS>
+        <STATEMENT_POPULATION>
+        <REGISTER_OUT_PARAM>
+        stmt.execute();
+        <RESULT_SET_EXTRACTION>
+        <RETURN_STATEMENT>
+    } catch (SQLException e) {
+        throw new PlsqlException(e);
+    }
+}
+>>
+
+functionMethodTemplate(STATEMENT_STATIC_CALL,
+RETURN_TYPE, METHOD_NAME,
+PARAMETERS,
+PROCEDURE_FULL_NAME,
+INIT_POS,
+STATEMENT_POPULATION,
+REGISTER_OUT_PARAM,
+RESULT_SET_EXTRACTION,
+RETURN_STATEMENT
+) ::=<<
+<STATEMENT_STATIC_CALL>
+public <RETURN_TYPE> <METHOD_NAME>(<PARAMETERS>){
+    try (CallableStatement stmt = cnx.prepareCall(<PROCEDURE_FULL_NAME>)) {
+        <INIT_POS>
+        <REGISTER_OUT_PARAM>
+        <STATEMENT_POPULATION>
+        stmt.execute();
+        <RESULT_SET_EXTRACTION>
+        <RETURN_STATEMENT>
+    } catch (SQLException e) {
+        throw new PlsqlException(e);
+    }
+}
+>>

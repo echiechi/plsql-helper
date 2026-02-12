@@ -15,9 +15,9 @@ public class RecordProcessor {
         this.extractor = new Extractor(context);
     }
 
-    public void  process(Element record) {
+    public void process(Element record) {
         context.logInfo("Start Processing and cashing of", record.getSimpleName());
         this.extractor.extractClassInfoAndAlimCache(record); // extract useful information to reuse later
-        context.logInfo("loaaging info");
+        context.logInfo("Caching and processing end", record.getSimpleName());
     }
 }

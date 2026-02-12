@@ -1,26 +1,31 @@
 package com.plsql.tools.statements.generators;
 
 import com.plsql.tools.ProcessingContext;
+import com.plsql.tools.annotations.Output;
 import com.plsql.tools.annotations.Package;
 import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.enums.CallableType;
 import com.plsql.tools.processors.MethodToProcess;
 import com.plsql.tools.statements.CallGenerator;
-import com.plsql.tools.templates.TemplateParams;
+import com.plsql.tools.templates.CodeSnippets;
+import com.plsql.tools.templates.CodeSnippetsTemplatesManager;
+import com.plsql.tools.templates.TemplateManager;
+import com.plsql.tools.tools.GenTools;
 import com.plsql.tools.tools.extraction.Extractor;
 import com.plsql.tools.tools.extraction.extractors.ExtractorValidator;
 import com.plsql.tools.tools.extraction.info.ElementInfo;
+import com.plsql.tools.tools.extraction.info.ReturnElementInfo;
 import com.plsql.tools.utils.CaseConverter;
 import org.apache.commons.lang3.StringUtils;
-import org.stringtemplate.v4.ST;
 
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.plsql.tools.templates.Templates.*;
+import static com.plsql.tools.templates.CodeSnippetsTemplatesManager.*;
 import static com.plsql.tools.tools.CodeGenConstants.*;
 import static com.plsql.tools.tools.Tools.isNullOrEmpty;
 import static com.plsql.tools.tools.Tools.isVoid;
@@ -60,24 +65,48 @@ public class CallableGenerator {
         List<String> paramNames = extractor.extractPramNames(methodParameters);
         var extractedReturnInfo = extractor.extractReturn(methodToProcess.method());
 
-        context.logDebug("Outputs:", outputs.stream().map(String::valueOf).collect(Collectors.joining("|")));
-        context.logDebug("Parameters:", paramNames.stream().map(String::valueOf).collect(Collectors.joining("|")));
-        context.logDebug("Callable Type: ", plsqlCallableAnnotation.type());
+        debugLog(outputs, paramNames, plsqlCallableAnnotation);
 
         // init generators :
         var paramBinderGenerator = new PlsqlParamBinderGenerator(methodParameters, plsqlCallableAnnotation.type() == CallableType.FUNCTION);
         var outputRegistrationGenerator = new OutputRegistrationGenerator(extractedReturnInfo);
         var returnGenerator = new ReturnGenerator(extractedReturnInfo, extractor);
 
-        CallGenerator callable;
+        CallGenerator callGenerator = createCallGenerator(plsqlCallableAnnotation,
+                packageName,
+                procedureName,
+                paramNames,
+                outputs,
+                extractedReturnInfo);
+
+        context.logInfo("Build method template...");
+
+        return buildMethod(plsqlCallableAnnotation,
+                methodToProcess,
+                callGenerator,
+                paramBinderGenerator,
+                outputRegistrationGenerator,
+                returnGenerator
+        );
+
+    }
+
+    private void debugLog(List<Output> outputs, List<String> paramNames, PlsqlCallable plsqlCallableAnnotation) {
+        context.logDebug("Outputs:", outputs.stream().map(String::valueOf).collect(Collectors.joining("|")));
+        context.logDebug("Parameters:", paramNames.stream().map(String::valueOf).collect(Collectors.joining("|")));
+        context.logDebug("Callable Type: ", plsqlCallableAnnotation.type());
+    }
+
+    private CallGenerator createCallGenerator(PlsqlCallable plsqlCallableAnnotation, String packageName, String procedureName, List<String> paramNames, List<Output> outputs, List<ReturnElementInfo> extractedReturnInfo) {
+        CallGenerator callGenerator;
         if (plsqlCallableAnnotation.type() == CallableType.PROCEDURE) {
-            callable = new ProcedureCallGenerator(
+            callGenerator = new ProcedureCallGenerator(
                     packageName,
                     procedureName);
-            callable.withSuffix(methodToProcess.suffix());
-            paramNames.forEach(callable::withParameter);
+            callGenerator.withSuffix(methodToProcess.suffix());
+            paramNames.forEach(callGenerator::withParameter);
             for (var output : outputs) {
-                callable.withParameter(output.value());
+                callGenerator.withParameter(output.value());
             }
         } else if (plsqlCallableAnnotation.type() == CallableType.FUNCTION) {
             if (outputs.size() > 1) {
@@ -89,97 +118,111 @@ public class CallableGenerator {
                 throw new IllegalStateException("A Function must have a return it can not be void");
             }
             extractedReturnInfo.get(0).setPos("1");
-            callable = new FunctionCallGenerator(
+            callGenerator = new FunctionCallGenerator(
                     packageName,
                     procedureName);
-            callable.withSuffix(methodToProcess.suffix());
-            paramNames.forEach(callable::withParameter);
+            callGenerator.withSuffix(methodToProcess.suffix());
+            paramNames.forEach(callGenerator::withParameter);
         } else {
             throw new IllegalStateException("Type not yet supported " + plsqlCallableAnnotation.type());
         }
-
-        context.logInfo("Generate Jdbc Call...");
-        var procedureCallStatement = callable.generate();
-        context.logDebug("PlsqlCallable call:", procedureCallStatement);
-
-        context.logInfo("Generate Binding parameters...");
-        var boundGeneratedStatements = paramBinderGenerator.generate();
-        context.logDebug("Statement population:", boundGeneratedStatements);
-
-        context.logInfo("Generate output registration...");
-        var outputRegistration = outputRegistrationGenerator.generate();
-        context.logDebug("Output registration:", outputRegistration);
-
-        context.logInfo("Generate elements to return...");
-        var generatedReturn = returnGenerator.generate();
-        context.logDebug("Generated return elements:", generatedReturn);
-
-        context.logInfo("Build method template...");
-
-        return buildMethodTemplate(
-                plsqlCallableAnnotation.type() == CallableType.PROCEDURE,
-                procedureCallStatement,
-                methodToProcess.method().getReturnType().toString(),
-                methodToProcess.method().getSimpleName().toString(),
-                methodToProcess.method().getParameters().stream().map(v -> String.format("%s %s", v.asType(), v.getSimpleName()))
-                        .collect(Collectors.joining(", ")),
-                methodToProcess.method().getParameters().stream().map(VariableElement::getSimpleName)
-                        .collect(Collectors.joining(", ")),
-                plsqlCallableAnnotation.dataSource(),
-                String.format("%s_%s", packageName, procedureName),
-                boundGeneratedStatements,
-                outputRegistration,
-                generatedReturn
-        );
+        return callGenerator;
     }
 
-    private String buildMethodTemplate(
-            boolean isProcedure,
-            String procedureCall,
-            String returnType,
-            String methodName,
-            String parameters,
-            String paramNames,
-            String dataSource,
-            String procedureName,
-            String boundGeneratedStatements,
-            String registeredOutParameters,
-            String resultSetsExtractionStatements) {
-        String parametersWithConnection = !parameters.isEmpty() ? "java.sql.Connection cnx, " + parameters : "java.sql.Connection cnx";
-        String paramNamesWithConnection = !paramNames.isEmpty() ? "cnx, " + paramNames : "cnx";
+    private String buildMethod(PlsqlCallable plsqlCallableAnnotation,
+                               MethodToProcess methodToProcess,
+                               CallGenerator callGenerator,
+                               PlsqlParamBinderGenerator plsqlParamBinderGenerator,
+                               OutputRegistrationGenerator outputRegistrationGenerator,
+                               ReturnGenerator returnGenerator
+    ) {
+        String methodWithConnection = generateMethodWithConnectionParam(plsqlCallableAnnotation,
+                methodToProcess,
+                callGenerator,
+                plsqlParamBinderGenerator,
+                outputRegistrationGenerator,
+                returnGenerator);
 
-        var methodInnerTrx = isProcedure ? PROCEDURE_METHOD_WITHIN_TRANSACTION_TEMPLATE : FUNCTION_METHOD_WITHIN_TRANSACTION_TEMPLATE;
-        ST methodInnerTrxBuilder = new ST(methodInnerTrx);
-        methodInnerTrxBuilder.add(TemplateParams.STATEMENT_STATIC_CALL.name(), procedureCall);
-        methodInnerTrxBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);
-        methodInnerTrxBuilder.add(TemplateParams.METHOD_NAME.name(), methodName);
-        methodInnerTrxBuilder.add(TemplateParams.PARAMETERS.name(), parametersWithConnection);
-        methodInnerTrxBuilder.add(TemplateParams.PROCEDURE_FULL_NAME.name(), procedureName);
-        methodInnerTrxBuilder.add(TemplateParams.INIT_POS.name(), !parameters.isEmpty() || !isVoid(returnType) ?
-                String.format("int %s = 1;", POSITION_VAR)
-                : "");
-        methodInnerTrxBuilder.add(TemplateParams.STATEMENT_POPULATION.name(), boundGeneratedStatements);
-        methodInnerTrxBuilder.add(TemplateParams.REGISTER_OUT_PARAM.name(),
-                isVoid(returnType) ? "" : registeredOutParameters);
-        methodInnerTrxBuilder.add(TemplateParams.RESULT_SET_EXTRACTION.name(), isVoid(returnType) ? "" : resultSetsExtractionStatements);
-        methodInnerTrxBuilder.add(TemplateParams.RETURN_STATEMENT.name(),
-                isNullOrEmpty(returnType) || isVoid(returnType) ? "" :
-                        String.format("return %s;", variableName(RETURN_VAR)));
+        String methodWithoutConnection = generateMethodWithoutConnectionParam(plsqlCallableAnnotation, methodToProcess);
 
-        ST methodTemplateBuilder = new ST(PROCEDURE_METHOD_TEMPLATE);
-
-        methodTemplateBuilder.add(TemplateParams.RETURN_TYPE.name(), returnType);
-        methodTemplateBuilder.add(TemplateParams.METHOD_NAME.name(), methodName);
-        methodTemplateBuilder.add(TemplateParams.PARAMETERS.name(), parameters);
-        methodTemplateBuilder.add(TemplateParams.DATA_SOURCE.name(), dataSource);
-        methodTemplateBuilder.add(TemplateParams.TRANSACTIONAL_METHOD.name(),
-                isVoid(returnType) ?
-                        String.format("%s(%s);", methodName, paramNamesWithConnection)
-                        :
-                        String.format("return %s(%s);", methodName, paramNamesWithConnection)
-        );
-
-        return methodTemplateBuilder.render() + "\n" +
-                methodInnerTrxBuilder.render();
+        return GenTools.joinWithReturnToLine(methodWithoutConnection, methodWithConnection);
     }
+
+    private String generateMethodWithConnectionParam(
+            PlsqlCallable plsqlCallableAnnotation,
+            MethodToProcess methodToProcess,
+            CallGenerator callGenerator,
+            PlsqlParamBinderGenerator plsqlParamBinderGenerator,
+            OutputRegistrationGenerator outputRegistrationGenerator,
+            ReturnGenerator returnGenerator
+    ) {
+        String parameters = extractMethodParameters(methodToProcess);
+        String returnType = methodToProcess.method().getReturnType().toString();
+
+        String connectionDeclaration = GenTools.join(java.sql.Connection.class.getCanonicalName(), " ", CNX_VAR);
+
+        String parametersWithConnection = !parameters.isEmpty() ?
+                GenTools.join(connectionDeclaration, ",", parameters) : connectionDeclaration;
+
+        var methodInnerTrx = plsqlCallableAnnotation.type() == CallableType.PROCEDURE ? PROCEDURE_METHOD_TEMPLATE : FUNCTION_METHOD_TEMPLATE;
+
+        String initPosition = !parameters.isEmpty() || !isVoid(returnType) ?
+                GenTools.assignAndInit(INT, POSITION_VAR, "1") : "";
+
+        String returnStatement = isNullOrEmpty(returnType) || isVoid(returnType) ? "" : GenTools.returnObject(variableName(RETURN_VAR));
+
+        TemplateManager<CodeSnippets.CallableMethodParams> callableMethodTemplateManager = new CodeSnippetsTemplatesManager<>();
+
+        return callableMethodTemplateManager.render(methodInnerTrx, Map.of(
+                CodeSnippets.CallableMethodParams.STATEMENT_STATIC_CALL, callGenerator.generate(),
+                CodeSnippets.CallableMethodParams.RETURN_TYPE, returnType,
+                CodeSnippets.CallableMethodParams.METHOD_NAME, methodToProcess.method().getSimpleName().toString(),
+                CodeSnippets.CallableMethodParams.PARAMETERS, parametersWithConnection,
+                CodeSnippets.CallableMethodParams.PROCEDURE_FULL_NAME, callGenerator.formatFullNameWithSuffix(),
+                CodeSnippets.CallableMethodParams.INIT_POS, initPosition,
+                CodeSnippets.CallableMethodParams.STATEMENT_POPULATION, plsqlParamBinderGenerator.generate(),
+                CodeSnippets.CallableMethodParams.REGISTER_OUT_PARAM, isVoid(returnType) ? "" : outputRegistrationGenerator.generate(),
+                CodeSnippets.CallableMethodParams.RESULT_SET_EXTRACTION, isVoid(returnType) ? "" : returnGenerator.generate(),
+                CodeSnippets.CallableMethodParams.RETURN_STATEMENT, returnStatement
+        ));
+    }
+
+    private String generateMethodWithoutConnectionParam(
+            PlsqlCallable plsqlCallableAnnotation,
+            MethodToProcess methodToProcess) {
+
+        String paramNames = extractMethodParametersNames(methodToProcess);
+
+        String paramNamesWithConnection = !paramNames.isEmpty() ? GenTools.join(CNX_VAR, ",", " ", paramNames) : CNX_VAR;
+
+        String returnType = methodToProcess.method().getReturnType().toString();
+
+        String methodName = methodToProcess.method().getSimpleName().toString();
+
+        String parameters = extractMethodParameters(methodToProcess);
+
+        String innerMethod = isVoid(returnType) ? GenTools.invokeMethod(methodName, paramNamesWithConnection).concat(";") :
+                GenTools.returnObject(GenTools.invokeMethod(methodName, paramNamesWithConnection));
+
+        TemplateManager<CodeSnippets.MethodParams> methodTemplateManager = new CodeSnippetsTemplatesManager<>();
+
+        return methodTemplateManager.render(METHOD_TEMPLATE, Map.of(
+                CodeSnippets.MethodParams.RETURN_TYPE, returnType,
+                CodeSnippets.MethodParams.METHOD_NAME, methodName,
+                CodeSnippets.MethodParams.PARAMETERS, parameters,
+                CodeSnippets.MethodParams.DATA_SOURCE, plsqlCallableAnnotation.dataSource(),
+                CodeSnippets.MethodParams.TRANSACTIONAL_METHOD, innerMethod
+        ));
+    }
+
+    private String extractMethodParameters(MethodToProcess methodToProcess) {
+        return methodToProcess.method().getParameters().stream().map(v -> String.format("%s %s", v.asType(), v.getSimpleName()))
+                .collect(Collectors.joining(", "));
+    }
+
+    private String extractMethodParametersNames(MethodToProcess methodToProcess) {
+        return methodToProcess.method().getParameters().stream().map(VariableElement::getSimpleName)
+                .collect(Collectors.joining(", "));
+    }
+
 }
