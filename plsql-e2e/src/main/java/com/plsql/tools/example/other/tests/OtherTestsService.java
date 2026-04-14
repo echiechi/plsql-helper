@@ -16,6 +16,6 @@ public abstract class OtherTestsService extends DataSourceAware {
     public abstract void displayMessageTest(ObjectTest objectTest);
 
 
-    @PlsqlCallable(name = "display_message_Test2", dataSource = DataSources.MY_DS, outputs = {})
+    @PlsqlCallable(name = "display_message_Test2", dataSource = DataSources.MY_DS)
     public abstract void/*ObjectTest*/ getMessageTest(ObjectTest objectTest);
 }

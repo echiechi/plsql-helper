@@ -14,7 +14,7 @@ public @interface PlsqlCallable {
 
     String dataSource();
 
-    Output[] outputs() default {}; // TODO: better to have inner output annotation for multiple outputs and one output() for simple
+    Output outputs() default @Output;
 
     CallableType type() default CallableType.PROCEDURE;
 

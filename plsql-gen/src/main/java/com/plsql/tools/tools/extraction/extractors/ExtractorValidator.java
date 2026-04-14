@@ -40,24 +40,11 @@ public class ExtractorValidator {
             PlsqlCallable annotation
     ) {
         TypeMirror returnType = method.getReturnType();
-        Output[] outputs = annotation.outputs();
+        Output outputs = annotation.outputs();
 
         boolean hasReturn = !Tools.isVoid(returnType.toString());
-        boolean hasOutputs = outputs.length > 0;
-
-        if (hasReturn && !hasOutputs) {
-            throw new IllegalStateException(
-                    "Method has return type but no @Output annotation: " +
-                            method.getSimpleName()
-            );
-        }
-
-        if (!hasReturn && hasOutputs) {
-            throw new IllegalStateException(
-                    "Method has @Output annotation but void return type: " +
-                            method.getSimpleName()
-            );
-        }
+        boolean hasInnerOutputs = outputs.innerOutputs().length > 0;
+        boolean hasOutput = !outputs.value().isEmpty();
 
         // Function-specific validation
         if (annotation.type() == CallableType.FUNCTION) {
@@ -67,12 +54,26 @@ public class ExtractorValidator {
                                 method.getSimpleName()
                 );
             }
-            if (outputs.length != 1) {
+            if (hasInnerOutputs) {
                 throw new IllegalStateException(
-                        "Function must have exactly one @Output, found: " +
-                                outputs.length + " in " + method.getSimpleName()
+                        "Function must not have innerOutputs @Output and it must be a of simple type, found: " +
+                                outputs.innerOutputs().length + " in " + method.getSimpleName()
                 );
             }
+        }
+
+        if (hasReturn && (!hasOutput && !hasInnerOutputs)) {
+            throw new IllegalStateException(
+                    "Method has return type but no @Output annotation: " +
+                            method.getSimpleName()
+            );
+        }
+
+        if (!hasReturn && (hasOutput || hasInnerOutputs)) {
+            throw new IllegalStateException(
+                    "Method has @Output annotation but void return type: " +
+                            method.getSimpleName()
+            );
         }
     }
 

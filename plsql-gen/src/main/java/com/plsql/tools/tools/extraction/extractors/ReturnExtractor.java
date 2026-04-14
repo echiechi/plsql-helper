@@ -3,6 +3,7 @@ package com.plsql.tools.tools.extraction.extractors;
 import com.plsql.tools.annotations.Output;
 import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.enums.TypeMapper;
+import com.plsql.tools.tools.Tools;
 import com.plsql.tools.tools.extraction.cache.SimpleCache;
 import com.plsql.tools.tools.extraction.info.*;
 
@@ -38,21 +39,19 @@ public class ReturnExtractor {
         if (isVoid(returnType.toString())) {
             return Collections.emptyList();
         }
-        Output[] outputs = method.getAnnotation(PlsqlCallable.class).outputs();
+        Output outputs = method.getAnnotation(PlsqlCallable.class).outputs();
+        boolean hasInnerOutputs = outputs.innerOutputs().length > 0;
 
-        if (outputs.length == 0) {
-            throw new IllegalStateException(
-                    "Method has a return type but no @Output annotation: " + method.getSimpleName()
-            );
-        }
-        return outputs.length == 1
-                ? extractSingleOutput(method, outputs[0])
-                : extractMultipleOutputs(method, outputs);
+        MetaInfo[] metaInfo = Tools.extractMetaInfo(outputs);
+
+        return !hasInnerOutputs
+                ? extractSingleOutput(method, metaInfo[0])
+                : extractMultipleOutputs(method, metaInfo);
     }
 
     private List<ReturnElementInfo> extractSingleOutput(
             ExecutableElement method,
-            Output output
+            MetaInfo output
     ) {
         // check for primitive return value:
         var type = TypeMapper
@@ -77,7 +76,7 @@ public class ReturnExtractor {
 
     private List<ReturnElementInfo> extractMultipleOutputs(
             ExecutableElement method,
-            Output[] outputs
+            MetaInfo[] outputs
     ) {
         DeclaredType returnType = (DeclaredType) method.getReturnType();
         List<AttachedElementInfo> attachedElements = cache.get(returnType.asElement().asType())
@@ -100,7 +99,7 @@ public class ReturnExtractor {
     }
 
     private Optional<ReturnElementInfo> mapOutputToReturnElement(
-            Output output,
+            MetaInfo output,
             List<AttachedElementInfo> attachedElements,
             ElementInfo parent
     ) {
@@ -114,19 +113,19 @@ public class ReturnExtractor {
                 });
     }
 
-    private ReturnElementInfo createReturnElementInfo(AttachedElementInfo attachedElementInfo, Output output) {
+    private ReturnElementInfo createReturnElementInfo(AttachedElementInfo attachedElementInfo, MetaInfo output) {
         var typeInfo = attachedElementInfo.getTypeInfo();
         return createReturnElementInfo(attachedElementInfo.getName(), output, typeInfo);
     }
 
-    private ReturnElementInfo createReturnElementInfo(DeclaredType returnType, Output output) {
+    private ReturnElementInfo createReturnElementInfo(DeclaredType returnType, MetaInfo output) {
         TypeInfo typeInfo = typeInfoExtractor.extractTypeInfo(returnType);
         return createReturnElementInfo(RETURN_VAR, output, typeInfo);
     }
 
     private ReturnElementInfo createReturnElementInfo(
             String defaultName,
-            Output output,
+            MetaInfo output,
             TypeInfo typeInfo) {
         String finalName = output.field().isBlank() ? defaultName : output.field();
         if (typeInfo.isSimple()) {
@@ -141,7 +140,7 @@ public class ReturnExtractor {
     private ReturnElementInfo createSimpleReturnElement(
             TypeInfo typeInfo,
             String name,
-            Output output
+            MetaInfo output
     ) {
         TypeMapper jdbcType = typeInfo.asTypeMapper();
         if (jdbcType == null) {
@@ -155,7 +154,7 @@ public class ReturnExtractor {
     private ReturnElementInfo createWrappedReturnElement(
             TypeInfo typeInfo,
             String name,
-            Output output
+            MetaInfo output
     ) {
         Element wrappedElement = typeInfo.getRawWrappedType();
         ComposedElementInfo composedInfo = composedElementExtractor.convertInto(wrappedElement);
@@ -167,7 +166,7 @@ public class ReturnExtractor {
     private ReturnElementInfo createComposedReturnElement(
             TypeInfo typeInfo,
             String name,
-            Output output
+            MetaInfo output
     ) {
         Element element = typeInfo.getRawType();
         ComposedElementInfo composedInfo = composedElementExtractor.convertInto(element, typeInfo);

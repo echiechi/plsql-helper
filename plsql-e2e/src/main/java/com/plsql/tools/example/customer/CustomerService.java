@@ -2,13 +2,10 @@ package com.plsql.tools.example.customer;
 
 import com.plsql.tools.DataSourceAware;
 import com.plsql.tools.DataSourceProvider;
-import com.plsql.tools.annotations.Output;
 import com.plsql.tools.annotations.Package;
-import com.plsql.tools.annotations.PlsqlCallable;
-import com.plsql.tools.annotations.PlsqlParam;
+import com.plsql.tools.annotations.*;
 import com.plsql.tools.enums.CallableType;
 import com.plsql.tools.example.DataSources;
-import com.plsql.tools.example.other.tests.CustomMapping;
 
 import java.sql.Connection;
 import java.time.LocalDate;
@@ -74,9 +71,11 @@ public abstract class CustomerService extends DataSourceAware {
                                                   @PlsqlParam("p_is_active")
                                                   char isActive);
 
-    @PlsqlCallable(name = "get_all_customers", dataSource = DataSources.MY_DS, outputs = {
-            @Output(value = "p_customer_cursor", field = "customerGets"),
-            @Output(value = "p_total_count", field = "customerTotal")})
+    @PlsqlCallable(name = "get_all_customers", dataSource = DataSources.MY_DS, outputs =
+    @Output(innerOutputs = {
+            @InnerOutput(value = "p_customer_cursor", field = "customerGets"),
+            @InnerOutput(value = "p_total_count", field = "customerTotal")})
+    )
     public abstract CustomerMulti getAllCustomers(@PlsqlParam("p_page_size")
                                                   int pageSize,
                                                   @PlsqlParam("p_page_number")
@@ -95,7 +94,7 @@ public abstract class CustomerService extends DataSourceAware {
     );
 
     @PlsqlCallable(name = "get_customer_full_name",
-            outputs = {@Output("customer_full_name")},
+            outputs = @Output("customer_full_name"),
             dataSource = DataSources.MY_DS,
             type = CallableType.FUNCTION)
     public abstract String getCustomerFullName(@PlsqlParam("p_customer_id") long id);

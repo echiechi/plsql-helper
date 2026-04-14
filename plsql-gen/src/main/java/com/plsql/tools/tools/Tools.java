@@ -1,11 +1,14 @@
 package com.plsql.tools.tools;
 
+import com.plsql.tools.annotations.Output;
 import com.plsql.tools.annotations.PlsqlParam;
 import com.plsql.tools.enums.TypeMapper;
 import com.plsql.tools.tools.extraction.info.ElementInfo;
+import com.plsql.tools.tools.extraction.info.MetaInfo;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -97,6 +100,19 @@ public class Tools {
         } else {
             throw new IllegalArgumentException("Type is not supported yet " + type);
         }
+    }
+
+    public static MetaInfo[] extractMetaInfo(Output output) {
+        boolean hasInnerOutputs = output.innerOutputs().length > 0;
+        MetaInfo[] metaInfo;
+        if (hasInnerOutputs) {
+            metaInfo = Arrays.stream(output.innerOutputs())
+                    .map(o -> new MetaInfo(o.value(), o.field()))
+                    .toArray(MetaInfo[]::new);
+        } else {
+            metaInfo = new MetaInfo[]{new MetaInfo(output.value(), "")};
+        }
+        return metaInfo;
     }
 
 }

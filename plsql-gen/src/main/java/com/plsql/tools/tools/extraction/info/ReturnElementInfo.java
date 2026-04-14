@@ -12,24 +12,24 @@ import java.util.List;
 public class ReturnElementInfo extends ComposedElementInfo {
 
     private ElementInfo parent;
-    private Output output;
+    private MetaInfo output;
     private String pos;
 
     public ReturnElementInfo() {
     }
 
-    public ReturnElementInfo(Output output, String pos) {
+    public ReturnElementInfo(MetaInfo output, String pos) {
         this.output = output;
         this.pos = pos;
     }
 
-    public ReturnElementInfo(TypeInfo typeInfo, String name, Output output, String pos) {
+    public ReturnElementInfo(TypeInfo typeInfo, String name, MetaInfo output, String pos) {
         super(typeInfo, name);
         this.output = output;
         this.pos = pos;
     }
 
-    public ReturnElementInfo(ComposedElementInfo composedElementInfo, Output output, String pos) {
+    public ReturnElementInfo(ComposedElementInfo composedElementInfo, MetaInfo output, String pos) {
         this(composedElementInfo.getTypeInfo(), composedElementInfo.getName(), output, pos);
         super.setElementInfoList(composedElementInfo.getElementInfoList());
         super.setNestedElementInfo(composedElementInfo.getNestedElementInfo());

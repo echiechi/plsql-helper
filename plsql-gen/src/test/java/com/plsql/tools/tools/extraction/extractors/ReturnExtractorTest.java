@@ -42,19 +42,22 @@ class ReturnExtractorTest {
     private ExecutableElement method;
 
     @Mock
-    private DeclaredType returnType;
+    private PlsqlCallable plsqlCallable;
 
     @Mock
-    private TypeMirror typeMirror;
+    private Output output;
+
+    @Mock
+    private TypeMirror returnTypeMirror;
+
+    @Mock
+    private DeclaredType declaredType;
 
     @Mock
     private Element element;
 
     @Mock
-    private PlsqlCallable plsqlCallable;
-
-    @Mock
-    private Output output;
+    private TypeInfo typeInfo;
 
     private ReturnExtractor extractor;
 
@@ -64,412 +67,342 @@ class ReturnExtractorTest {
     }
 
     @Test
-    @DisplayName("extractReturn should return empty list for void return type")
-    void testExtractReturn_voidReturnType() {
-        // Arrange
-        TypeMirror voidType = mock(TypeMirror.class);
-        when(method.getReturnType()).thenReturn(voidType);
-        when(voidType.toString()).thenReturn("void");
+    @DisplayName("Should return empty list when return type is void")
+    void testExtractReturn_VoidReturnType() {
+        when(method.getReturnType()).thenReturn(returnTypeMirror);
+        when(returnTypeMirror.toString()).thenReturn("void");
 
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
-        assertNotNull(result);
         assertTrue(result.isEmpty());
+        verify(method, never()).getAnnotation(PlsqlCallable.class);
     }
 
     @Test
-    @DisplayName("extractReturn should throw exception when return type exists but no @Output annotation")
-    void testExtractReturn_noOutputAnnotation() {
-        // Arrange
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("String");
+    @DisplayName("Should extract single output with DeclaredType")
+    void testExtractReturn_SingleOutputWithDeclaredType() {
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("String");
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[0]);
-
-        // Act & Assert
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            () -> extractor.extractReturn(method)
-        );
-
-        assertTrue(exception.getMessage().contains("Method has a return type but no @Output annotation"));
-    }
-
-    @Test
-    @DisplayName("extractReturn should extract single output with simple type")
-    void testExtractReturn_singleOutputSimpleType() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
-        Element returnElement = mock(Element.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("String");
-        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
-
-        when(output.field()).thenReturn("");
-//        when(output.value()).thenReturn("p_result");
-
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
         when(typeInfo.isSimple()).thenReturn(true);
-//       when(typeInfo.typeAsString()).thenReturn("java.lang.String");
         when(typeInfo.asTypeMapper()).thenReturn(TypeMapper.STRING);
 
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        ReturnElementInfo returnInfo = result.get(0);
-        assertNotNull(returnInfo);
-        assertEquals(typeInfo, returnInfo.getTypeInfo());
+        verify(typeInfoExtractor).extractTypeInfo(declaredType);
     }
 
     @Test
-    @DisplayName("extractReturn should throw exception for simple type that cannot be mapped to JDBC")
-    void testExtractReturn_simpleTypeCannotBeMapped() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
+    @DisplayName("Should extract single output with primitive type")
+    void testExtractReturn_SingleOutputWithPrimitive() {
+        javax.lang.model.type.TypeKind typeKind = javax.lang.model.type.TypeKind.INT;
 
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("UnknownType");
+        when(method.getReturnType()).thenReturn(returnTypeMirror);
+        when(returnTypeMirror.toString()).thenReturn("int");
+        when(returnTypeMirror.getKind()).thenReturn(typeKind);
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
-
-        when(output.field()).thenReturn("");
-
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+        when(typeInfoExtractor.getDeclaredType("java.lang.Integer")).thenReturn(declaredType);
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
         when(typeInfo.isSimple()).thenReturn(true);
-        when(typeInfo.typeAsString()).thenReturn("UnknownType");
-        when(typeInfo.asTypeMapper()).thenReturn(null);
+        when(typeInfo.asTypeMapper()).thenReturn(TypeMapper.INTEGER);
 
-        // Act & Assert
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            () -> extractor.extractReturn(method)
-        );
-
-        assertTrue(exception.getMessage().contains("Type cannot be mapped to JDBC type"));
-    }
-
-    @Test
-    @DisplayName("extractReturn should handle wrapped return type")
-    void testExtractReturn_wrappedReturnType() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
-        Element wrappedElement = mock(Element.class);
-        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("List<User>");
-        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
-
-        when(output.field()).thenReturn("");
-
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
-        when(typeInfo.isSimple()).thenReturn(false);
-        when(typeInfo.isWrapped()).thenReturn(true);
-        when(typeInfo.getRawWrappedType()).thenReturn(wrappedElement);
-
-        when(composedElementExtractor.convertInto(wrappedElement)).thenReturn(composedInfo);
-
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(composedElementExtractor).convertInto(wrappedElement);
-        verify(composedInfo).setTypeInfo(typeInfo);
+        verify(typeInfoExtractor).getDeclaredType("java.lang.Integer");
     }
 
     @Test
-    @DisplayName("extractReturn should handle composed return type")
-    void testExtractReturn_composedReturnType() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
-        Element returnElement = mock(Element.class);
-        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("User");
+    @DisplayName("Should throw exception for unsupported return type in single output")
+    void testExtractReturn_UnsupportedReturnType() {
+        when(method.getReturnType()).thenReturn(returnTypeMirror);
+        when(returnTypeMirror.toString()).thenReturn("UnsupportedType");
+        when(returnTypeMirror.getKind()).thenReturn(javax.lang.model.type.TypeKind.OTHER);
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
 
-        when(output.field()).thenReturn("");
-
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
-        when(typeInfo.isSimple()).thenReturn(false);
-        when(typeInfo.isWrapped()).thenReturn(false);
-        when(typeInfo.getRawType()).thenReturn(returnElement);
-
-        when(composedElementExtractor.convertInto(returnElement, typeInfo)).thenReturn(composedInfo);
-
-        // Act
-        List<ReturnElementInfo> result = extractor.extractReturn(method);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(composedElementExtractor).convertInto(returnElement, typeInfo);
+        assertThrows(IllegalStateException.class, () -> extractor.extractReturn(method));
     }
 
     @Test
-    @DisplayName("extractReturn should extract multiple outputs")
-    void testExtractReturn_multipleOutputs() {
-        // Arrange
-        Output output1 = mock(Output.class);
-        Output output2 = mock(Output.class);
+    @DisplayName("Should handle null TypeKind gracefully")
+    void testExtractReturn_NullTypeKind() {
+        when(method.getReturnType()).thenReturn(returnTypeMirror);
+        when(returnTypeMirror.toString()).thenReturn("SomeType");
+        when(returnTypeMirror.getKind()).thenReturn(null);
+        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+
+        assertThrows(IllegalStateException.class, () -> extractor.extractReturn(method));
+    }
+
+    @Test
+    @DisplayName("Should extract multiple outputs from cache")
+    void testExtractReturn_MultipleOutputs() {
+        com.plsql.tools.annotations.InnerOutput innerOutput1 = mock(com.plsql.tools.annotations.InnerOutput.class);
+        com.plsql.tools.annotations.InnerOutput innerOutput2 = mock(com.plsql.tools.annotations.InnerOutput.class);
+
+        when(innerOutput1.value()).thenReturn("alias1");
+        when(innerOutput1.field()).thenReturn("field1");
+        when(innerOutput2.value()).thenReturn("alias2");
+        when(innerOutput2.field()).thenReturn("field2");
+
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("CustomType");
+        when(declaredType.asElement()).thenReturn(element);
+        when(element.asType()).thenReturn(returnTypeMirror);
+        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[]{innerOutput1, innerOutput2});
 
         AttachedElementInfo attachedElement1 = mock(AttachedElementInfo.class);
         AttachedElementInfo attachedElement2 = mock(AttachedElementInfo.class);
-
-        TypeInfo typeInfo1 = mock(TypeInfo.class);
-        TypeInfo typeInfo2 = mock(TypeInfo.class);
-
-        Element returnElement = mock(Element.class);
-        TypeMirror returnTypeMirror = mock(TypeMirror.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("UserResult");
-        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output1, output2});
-
-        when(returnType.asElement()).thenReturn(returnElement);
-        when(returnElement.asType()).thenReturn(returnTypeMirror);
-
-        when(output1.field()).thenReturn("userId");
-        when(output2.field()).thenReturn("userName");
+        when(attachedElement1.getName()).thenReturn("field1");
+        when(attachedElement2.getName()).thenReturn("field2");
+        when(attachedElement1.getTypeInfo()).thenReturn(typeInfo);
+        when(attachedElement2.getTypeInfo()).thenReturn(typeInfo);
 
         when(cache.get(returnTypeMirror)).thenReturn(Optional.of(List.of(attachedElement1, attachedElement2)));
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
+        when(typeInfo.isSimple()).thenReturn(true);
+        when(typeInfo.asTypeMapper()).thenReturn(TypeMapper.STRING);
 
-        when(attachedElement1.getName()).thenReturn("userId");
-        when(attachedElement1.getTypeInfo()).thenReturn(typeInfo1);
-        when(typeInfo1.isSimple()).thenReturn(true);
-        when(typeInfo1.asTypeMapper()).thenReturn(TypeMapper.LONG);
-
-        when(attachedElement2.getName()).thenReturn("userName");
-        when(attachedElement2.getTypeInfo()).thenReturn(typeInfo2);
-        when(typeInfo2.isSimple()).thenReturn(true);
-        when(typeInfo2.asTypeMapper()).thenReturn(TypeMapper.STRING);
-
-        TypeInfo returnTypeInfo = mock(TypeInfo.class);
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(returnTypeInfo);
-
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         verify(cache).get(returnTypeMirror);
     }
 
     @Test
-    @DisplayName("extractReturn should throw exception when return type not in cache for multiple outputs")
-    void testExtractReturn_multipleOutputsNotInCache() {
-        // Arrange
-        Output output1 = mock(Output.class);
-        Output output2 = mock(Output.class);
+    @DisplayName("Should throw exception when return type not in cache for multiple outputs")
+    void testExtractReturn_MultipleOutputs_NotInCache() {
+        com.plsql.tools.annotations.InnerOutput innerOutput = mock(com.plsql.tools.annotations.InnerOutput.class);
+        when(innerOutput.value()).thenReturn("alias");
+        when(innerOutput.field()).thenReturn("field");
 
-        Element returnElement = mock(Element.class);
-        TypeMirror returnTypeMirror = mock(TypeMirror.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("UserResult");
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("CustomType");
+        when(declaredType.asElement()).thenReturn(element);
+        when(element.asType()).thenReturn(returnTypeMirror);
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output1, output2});
-
-        when(returnType.asElement()).thenReturn(returnElement);
-        when(returnElement.asType()).thenReturn(returnTypeMirror);
-
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[]{innerOutput});
         when(cache.get(returnTypeMirror)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        IllegalStateException exception = assertThrows(
-            IllegalStateException.class,
-            () -> extractor.extractReturn(method)
-        );
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+            () -> extractor.extractReturn(method));
 
         assertTrue(exception.getMessage().contains("Return type not in cache"));
     }
 
     @Test
-    @DisplayName("extractReturn should handle output with non-matching field name")
-    void testExtractReturn_multipleOutputsNonMatchingField() {
-        // Arrange
-        Output output1 = mock(Output.class);
-        Output output2 = mock(Output.class);
+    @DisplayName("Should filter out non-matching fields in multiple outputs")
+    void testExtractReturn_MultipleOutputs_NonMatchingFields() {
+        com.plsql.tools.annotations.InnerOutput innerOutput = mock(com.plsql.tools.annotations.InnerOutput.class);
+        when(innerOutput.value()).thenReturn("alias");
+        when(innerOutput.field()).thenReturn("nonExistentField");
 
-        Element returnElement = mock(Element.class);
-        TypeMirror returnTypeMirror = mock(TypeMirror.class);
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("CustomType");
+        when(declaredType.asElement()).thenReturn(element);
+        when(element.asType()).thenReturn(returnTypeMirror);
+        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[]{innerOutput});
 
         AttachedElementInfo attachedElement = mock(AttachedElementInfo.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("UserResult");
-        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output1, output2});
-
-        when(returnType.asElement()).thenReturn(returnElement);
-        when(returnElement.asType()).thenReturn(returnTypeMirror);
-
-        when(output1.field()).thenReturn("nonExistentField");
-        when(output2.field()).thenReturn("anotherNonExistentField");
+        when(attachedElement.getName()).thenReturn("differentField");
 
         when(cache.get(returnTypeMirror)).thenReturn(Optional.of(List.of(attachedElement)));
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
 
-        when(attachedElement.getName()).thenReturn("userId");
-
-        TypeInfo returnTypeInfo = mock(TypeInfo.class);
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(returnTypeInfo);
-
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
 
     @Test
-    @DisplayName("extractReturn should use default name when field is blank in single output")
-    void testExtractReturn_singleOutputBlankField() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("String");
+    @DisplayName("Should throw exception when simple type cannot be mapped to JDBC")
+    void testCreateReturnElementInfo_SimpleType_UnmappableToJdbc() {
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("String");
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
-
-        when(output.field()).thenReturn("");
-
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
         when(typeInfo.isSimple()).thenReturn(true);
-        when(typeInfo.asTypeMapper()).thenReturn(TypeMapper.STRING);
+        when(typeInfo.asTypeMapper()).thenReturn(null);
+        when(typeInfo.typeAsString()).thenReturn("UnmappableType");
 
-        // Act
-        List<ReturnElementInfo> result = extractor.extractReturn(method);
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+            () -> extractor.extractReturn(method));
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
+        assertTrue(exception.getMessage().contains("Type cannot be mapped to JDBC type"));
     }
 
     @Test
-    @DisplayName("extractReturn should use custom field name when provided")
-    void testExtractReturn_customFieldName() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("String");
+    @DisplayName("Should create wrapped return element")
+    void testCreateReturnElementInfo_WrappedType() {
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("List<String>");
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
+        when(typeInfo.isSimple()).thenReturn(false);
+        when(typeInfo.isWrapped()).thenReturn(true);
+        when(typeInfo.getRawWrappedType()).thenReturn(element);
 
-        when(output.field()).thenReturn("customName");
+        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
+        when(composedInfo.getTypeInfo()).thenReturn(typeInfo);
+        when(composedInfo.getName()).thenReturn("result");
+        when(composedInfo.getElementInfoList()).thenReturn(List.of());
+        when(composedInfo.getNestedElementInfo()).thenReturn(java.util.Collections.emptyMap());
+        when(composedElementExtractor.convertInto(element)).thenReturn(composedInfo);
 
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
-        when(typeInfo.isSimple()).thenReturn(true);
-        when(typeInfo.asTypeMapper()).thenReturn(TypeMapper.STRING);
-
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(composedElementExtractor).convertInto(element);
+        verify(composedInfo).setTypeInfo(typeInfo);
+    }
+
+    @Test
+    @DisplayName("Should create composed return element")
+    void testCreateReturnElementInfo_ComposedType() {
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("CustomObject");
+        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+//        when(output.field()).thenReturn("");
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
+        when(typeInfo.isSimple()).thenReturn(false);
+        when(typeInfo.isWrapped()).thenReturn(false);
+        when(typeInfo.getRawType()).thenReturn(element);
+
+        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
+        when(composedInfo.getTypeInfo()).thenReturn(typeInfo);
+        when(composedInfo.getName()).thenReturn("result");
+        when(composedInfo.getElementInfoList()).thenReturn(List.of());
+        when(composedInfo.getNestedElementInfo()).thenReturn(java.util.Collections.emptyMap());
+        when(composedElementExtractor.convertInto(element, typeInfo)).thenReturn(composedInfo);
+
+        List<ReturnElementInfo> result = extractor.extractReturn(method);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(composedElementExtractor).convertInto(element, typeInfo);
+        verify(composedInfo).setName("result");
+    }
+
+    @Test
+    @DisplayName("Should use field name from MetaInfo when provided")
+    void testCreateReturnElementInfo_CustomFieldName() {
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("String");
+        when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+//        when(output.field()).thenReturn("customName");
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
+        when(typeInfo.isSimple()).thenReturn(false);
+        when(typeInfo.isWrapped()).thenReturn(false);
+        when(typeInfo.getRawType()).thenReturn(element);
+
+        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
+        when(composedInfo.getTypeInfo()).thenReturn(typeInfo);
+        when(composedInfo.getName()).thenReturn("customName");
+        when(composedInfo.getElementInfoList()).thenReturn(List.of());
+        when(composedInfo.getNestedElementInfo()).thenReturn(java.util.Collections.emptyMap());
+        when(composedElementExtractor.convertInto(element, typeInfo)).thenReturn(composedInfo);
+
+        List<ReturnElementInfo> result = extractor.extractReturn(method);
+
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("customName", result.get(0).getName());
     }
 
     @Test
-    @DisplayName("extractReturn should set parent for multiple outputs")
-    void testExtractReturn_multipleOutputsWithParent() {
-        // Arrange
-        Output output1 = mock(Output.class);
-        Output output2 = mock(Output.class);
-
-        AttachedElementInfo attachedElement1 = mock(AttachedElementInfo.class);
-        AttachedElementInfo attachedElement2 = mock(AttachedElementInfo.class);
-        TypeInfo attachedTypeInfo1 = mock(TypeInfo.class);
-        TypeInfo attachedTypeInfo2 = mock(TypeInfo.class);
-
-        Element returnElement = mock(Element.class);
-        TypeMirror returnTypeMirror = mock(TypeMirror.class);
-
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("UserResult");
+    @DisplayName("Should use default field name when MetaInfo field is blank")
+    void testCreateReturnElementInfo_DefaultFieldName() {
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("String");
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output1, output2});
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[0]);
+        when(output.value()).thenReturn("alias");
+//        when(output.field()).thenReturn("");
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
+        when(typeInfo.isSimple()).thenReturn(false);
+        when(typeInfo.isWrapped()).thenReturn(false);
+        when(typeInfo.getRawType()).thenReturn(element);
 
-        when(returnType.asElement()).thenReturn(returnElement);
-        when(returnElement.asType()).thenReturn(returnTypeMirror);
+        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
+        when(composedInfo.getTypeInfo()).thenReturn(typeInfo);
+        when(composedInfo.getName()).thenReturn("result");
+        when(composedInfo.getElementInfoList()).thenReturn(List.of());
+        when(composedInfo.getNestedElementInfo()).thenReturn(java.util.Collections.emptyMap());
+        when(composedElementExtractor.convertInto(element, typeInfo)).thenReturn(composedInfo);
 
-        when(output1.field()).thenReturn("userId");
-        when(output2.field()).thenReturn("userName");
-
-        when(cache.get(returnTypeMirror)).thenReturn(Optional.of(List.of(attachedElement1, attachedElement2)));
-
-        when(attachedElement1.getName()).thenReturn("userId");
-        when(attachedElement1.getTypeInfo()).thenReturn(attachedTypeInfo1);
-        when(attachedTypeInfo1.isSimple()).thenReturn(true);
-        when(attachedTypeInfo1.asTypeMapper()).thenReturn(TypeMapper.LONG);
-
-        when(attachedElement2.getName()).thenReturn("userName");
-        when(attachedElement2.getTypeInfo()).thenReturn(attachedTypeInfo2);
-        when(attachedTypeInfo2.isSimple()).thenReturn(true);
-        when(attachedTypeInfo2.asTypeMapper()).thenReturn(TypeMapper.STRING);
-
-        TypeInfo returnTypeInfo = mock(TypeInfo.class);
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(returnTypeInfo);
-
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
         assertNotNull(result);
-        assertEquals(2, result.size());
-        assertTrue(result.get(0).hasParent());
-        assertNotNull(result.get(0).getParent());
-        assertTrue(result.get(1).hasParent());
-        assertNotNull(result.get(1).getParent());
+        assertEquals(1, result.size());
+        assertEquals("result", result.get(0).getName());
     }
 
     @Test
-    @DisplayName("extractReturn should handle complex wrapped type")
-    void testExtractReturn_complexWrappedType() {
-        // Arrange
-        TypeInfo typeInfo = mock(TypeInfo.class);
-        Element wrappedElement = mock(Element.class);
-        ComposedElementInfo composedInfo = mock(ComposedElementInfo.class);
+    @DisplayName("Should set parent for multiple outputs")
+    void testExtractReturn_MultipleOutputs_SetsParent() {
+        com.plsql.tools.annotations.InnerOutput innerOutput = mock(com.plsql.tools.annotations.InnerOutput.class);
+        when(innerOutput.value()).thenReturn("alias");
+        when(innerOutput.field()).thenReturn("field1");
 
-        when(method.getReturnType()).thenReturn(returnType);
-        when(returnType.toString()).thenReturn("Optional<User>");
+        when(method.getReturnType()).thenReturn(declaredType);
+        when(declaredType.toString()).thenReturn("CustomType");
+        when(declaredType.asElement()).thenReturn(element);
+        when(element.asType()).thenReturn(returnTypeMirror);
         when(method.getAnnotation(PlsqlCallable.class)).thenReturn(plsqlCallable);
-        when(plsqlCallable.outputs()).thenReturn(new Output[]{output});
+        when(plsqlCallable.outputs()).thenReturn(output);
+        when(output.innerOutputs()).thenReturn(new com.plsql.tools.annotations.InnerOutput[]{innerOutput});
 
-        when(output.field()).thenReturn("user");
+        AttachedElementInfo attachedElement = mock(AttachedElementInfo.class);
+        when(attachedElement.getName()).thenReturn("field1");
+        when(attachedElement.getTypeInfo()).thenReturn(typeInfo);
 
-        when(typeInfoExtractor.extractTypeInfo(returnType)).thenReturn(typeInfo);
-        when(typeInfo.isSimple()).thenReturn(false);
-        when(typeInfo.isWrapped()).thenReturn(true);
-        when(typeInfo.getRawWrappedType()).thenReturn(wrappedElement);
+        when(cache.get(returnTypeMirror)).thenReturn(Optional.of(List.of(attachedElement)));
+        when(typeInfoExtractor.extractTypeInfo(declaredType)).thenReturn(typeInfo);
+        when(typeInfo.isSimple()).thenReturn(true);
+        when(typeInfo.asTypeMapper()).thenReturn(TypeMapper.STRING);
 
-        when(composedElementExtractor.convertInto(wrappedElement)).thenReturn(composedInfo);
-        when(composedInfo.getName()).thenReturn("user");
-
-        // Act
         List<ReturnElementInfo> result = extractor.extractReturn(method);
 
-        // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals("user", result.get(0).getName());
-        verify(composedInfo).setName("user");
+        assertNotNull(result.get(0).getParent());
+        assertTrue(result.get(0).hasParent());
     }
 }

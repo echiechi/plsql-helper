@@ -1,7 +1,6 @@
 package com.plsql.tools.statements.generators;
 
 import com.plsql.tools.ProcessingContext;
-import com.plsql.tools.annotations.Output;
 import com.plsql.tools.annotations.Package;
 import com.plsql.tools.annotations.PlsqlCallable;
 import com.plsql.tools.enums.CallableType;
@@ -11,9 +10,11 @@ import com.plsql.tools.templates.CodeSnippets;
 import com.plsql.tools.templates.CodeSnippetsTemplatesManager;
 import com.plsql.tools.templates.TemplateManager;
 import com.plsql.tools.tools.GenTools;
+import com.plsql.tools.tools.Tools;
 import com.plsql.tools.tools.extraction.Extractor;
 import com.plsql.tools.tools.extraction.extractors.ExtractorValidator;
 import com.plsql.tools.tools.extraction.info.ElementInfo;
+import com.plsql.tools.tools.extraction.info.MetaInfo;
 import com.plsql.tools.tools.extraction.info.ReturnElementInfo;
 import com.plsql.tools.utils.CaseConverter;
 import org.apache.commons.lang3.StringUtils;
@@ -61,7 +62,7 @@ public class CallableGenerator {
                 CaseConverter.toSnakeCase(methodToProcess.method().getSimpleName().toString()) :
                 plsqlCallableAnnotation.name();
 
-        var outputs = Arrays.asList(plsqlCallableAnnotation.outputs());
+        var outputs = Arrays.asList(Tools.extractMetaInfo(plsqlCallableAnnotation.outputs()));
         List<String> paramNames = extractor.extractPramNames(methodParameters);
         var extractedReturnInfo = extractor.extractReturn(methodToProcess.method());
 
@@ -91,13 +92,18 @@ public class CallableGenerator {
 
     }
 
-    private void debugLog(List<Output> outputs, List<String> paramNames, PlsqlCallable plsqlCallableAnnotation) {
+    private void debugLog(List<MetaInfo> outputs, List<String> paramNames, PlsqlCallable plsqlCallableAnnotation) {
         context.logDebug("Outputs:", outputs.stream().map(String::valueOf).collect(Collectors.joining("|")));
         context.logDebug("Parameters:", paramNames.stream().map(String::valueOf).collect(Collectors.joining("|")));
         context.logDebug("Callable Type: ", plsqlCallableAnnotation.type());
     }
 
-    private CallGenerator createCallGenerator(PlsqlCallable plsqlCallableAnnotation, String packageName, String procedureName, List<String> paramNames, List<Output> outputs, List<ReturnElementInfo> extractedReturnInfo) {
+    private CallGenerator createCallGenerator(PlsqlCallable plsqlCallableAnnotation,
+                                              String packageName,
+                                              String procedureName,
+                                              List<String> paramNames,
+                                              List<MetaInfo> outputs,
+                                              List<ReturnElementInfo> extractedReturnInfo) {
         CallGenerator callGenerator;
         if (plsqlCallableAnnotation.type() == CallableType.PROCEDURE) {
             callGenerator = new ProcedureCallGenerator(
@@ -106,17 +112,9 @@ public class CallableGenerator {
             callGenerator.withSuffix(methodToProcess.suffix());
             paramNames.forEach(callGenerator::withParameter);
             for (var output : outputs) {
-                callGenerator.withParameter(output.value());
+                callGenerator.withParameter(output.alias());
             }
         } else if (plsqlCallableAnnotation.type() == CallableType.FUNCTION) {
-            if (outputs.size() > 1) {
-                throw new IllegalStateException("A Function type can have only one @Output and it must be a simple type");
-            } else if (outputs.isEmpty()) {
-                throw new IllegalStateException("A Function must have a return (@Output)");
-            }
-            if (extractedReturnInfo.isEmpty()) {
-                throw new IllegalStateException("A Function must have a return it can not be void");
-            }
             extractedReturnInfo.get(0).setPos("1");
             callGenerator = new FunctionCallGenerator(
                     packageName,
