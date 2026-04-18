@@ -74,7 +74,7 @@ The implementation is **automatically generated** during compilation!
 - **Multiple Outputs**: Support for procedures with multiple OUT parameters
 - **Named Parameters**: Oracle named parameter syntax (`param => ?`)
 - **Connection Management**: Built-in connection handling and resource cleanup
-- **Function Support**: Both procedures and functions supported
+- **Function Support**: Both procedures and functions supported via `type = CallableType.FUNCTION`
 - **Optional Results**: `Optional<T>` support for nullable results
 - **Collection Support**: `List<T>` for multiple rows
 
@@ -377,10 +377,10 @@ public class CustomerMulti {
 }
 
 @PlsqlCallable(name = "get_all_customers", dataSource = "MY_DS",
-    outputs = {
-        @Output(value = "p_customer_cursor", field = "customerGets"),
-        @Output(value = "p_total_count", field = "customerTotal")
-    })
+    outputs = @Output(innerOutputs = {
+        @InnerOutput(value = "p_customer_cursor", field = "customerGets"),
+        @InnerOutput(value = "p_total_count", field = "customerTotal")
+    }))
 public abstract CustomerMulti getAllCustomers(
     @PlsqlParam("p_page_size") int pageSize,
     @PlsqlParam("p_page_number") int pageNumber
@@ -443,19 +443,16 @@ System.out.println("Full name: " + fullName);
 @PlsqlCallable(
     name = "insert_customer",           // PL/SQL procedure/function name
     dataSource = "MY_DS",               // Required: datasource identifier
-    type = CallableType.PROCEDURE,      // PROCEDURE or FUNCTION
-    outputs = @Output("p_customer_id")  // OUT parameter definitions
+    type = CallableType.PROCEDURE,      // PROCEDURE (default) or FUNCTION
+    outputs = @Output("p_customer_id")  // Single OUT parameter
 )
-```
 
-### @Function
-**Target:** Method
-**Purpose:** Simplified annotation for functions (must have return value)
-
-```java
-@Function(
-    name = "calculate_total",  // Function name
-    dataSource = "MY_DS"       // Datasource identifier
+// For functions, use type = CallableType.FUNCTION — no separate @Function annotation:
+@PlsqlCallable(
+    name = "get_customer_full_name",
+    dataSource = "MY_DS",
+    type = CallableType.FUNCTION,
+    outputs = @Output("customer_full_name")
 )
 ```
 
@@ -481,25 +478,32 @@ private Long customerId;
 ```
 
 ### @Output
-**Target:** Field, Type
-**Purpose:** Marks OUT or IN/OUT parameters
+**Target:** Method (via `@PlsqlCallable.outputs`)
+**Purpose:** Declares the OUT parameter(s) of a callable. For a single output, set `value` directly. For multiple outputs, use `innerOutputs`.
 
 ```java
-@Output(
-    value = "p_customer_cursor",  // OUT parameter name
-    field = "customerGets"        // Field name in result object (for multiple outputs)
-)
+// Single OUT parameter
+@Output("p_customer_id")
+
+// Single OUT parameter with explicit field mapping
+@Output(value = "p_customer_cursor", field = "customerGets")
+
+// Multiple OUT parameters via innerOutputs
+@Output(innerOutputs = {
+    @InnerOutput(value = "p_customer_cursor", field = "customerGets"),
+    @InnerOutput(value = "p_total_count",     field = "customerTotal")
+})
 ```
 
-### @MultiOutput
-**Target:** Type
-**Purpose:** Container for multiple @Output annotations
+### @InnerOutput
+**Target:** Used inside `@Output.innerOutputs`
+**Purpose:** Declares a single OUT parameter when there are multiple outputs; maps the DB parameter to a field on the result object.
 
 ```java
-@MultiOutput({
-    @Output(value = "p_cursor", field = "customers"),
-    @Output(value = "p_total", field = "total")
-})
+@InnerOutput(
+    value = "p_customer_cursor",  // OUT parameter name in PL/SQL
+    field = "customerGets"        // Field name on the result @Record class
+)
 ```
 
 ## Advanced Features
@@ -543,19 +547,17 @@ The library handles all connection management automatically:
 
 ```java
 // Generated code includes proper resource management:
-try (Connection cnx = ds.getConnection();
-     CallableStatement stmt = cnx.prepareCall(sql)) {
-    // Execute procedure
-    stmt.execute();
-    // Extract results
-} catch (SQLException e) {
-    throw new RuntimeException(e);
+try (Connection cnx = ds.getConnection()) {
+    return myMethod(cnx, ...);
+} catch (SQLException | PlsqlException e) {
+    throw new PlsqlException(e);
 }
 ```
 
 - Connections are automatically closed
 - Statements are automatically closed
-- Exceptions are wrapped in `RuntimeException`
+- Exceptions are wrapped in `PlsqlException` (a `RuntimeException` subclass)
+- An extra `Connection`-accepting overload is generated so you can participate in an external transaction
 
 ### DataSource Providers
 
@@ -607,19 +609,31 @@ public abstract Integer insertCustomer(
 );
 ```
 
-The processor generates:
+The processor generates two overloads — one that manages its own connection, and one that accepts an external `Connection` for transaction control:
 ```java
 public class CustomerServiceImpl extends CustomerService {
-    public static final String pkg_customer_management_insert_customer =
-        "{ call pkg_customer_management.insert_customer(p_first_name => ?, p_last_name => ?, p_customer_id => ?) }";
 
+    public CustomerServiceImpl(DataSourceProvider dataSourceProvider) {
+        super(dataSourceProvider);
+    }
+
+    // --- overload 1: manages its own connection ---
     @Override
     public Integer insertCustomer(String firstName, String lastName) {
         DataSource ds = dataSourceProvider.getDataSource("MY_DS");
+        try (Connection cnx = ds.getConnection()) {
+            return insertCustomer(cnx, firstName, lastName);
+        } catch (SQLException | PlsqlException e) {
+            throw new PlsqlException(e);
+        }
+    }
 
-        try (Connection cnx = ds.getConnection();
-             CallableStatement stmt = cnx.prepareCall(pkg_customer_management_insert_customer)) {
+    public static final String pkg_customer_management_insert_customer =
+        "{ call pkg_customer_management.insert_customer(p_first_name => ?,p_last_name => ?,p_customer_id => ?) }";
 
+    // --- overload 2: accepts an external connection ---
+    public Integer insertCustomer(Connection cnx, String firstName, String lastName) {
+        try (CallableStatement stmt = cnx.prepareCall(pkg_customer_management_insert_customer)) {
             int pos = 1;
             stmt.setString(pos++, firstName);
             stmt.setString(pos++, lastName);
@@ -627,11 +641,11 @@ public class CustomerServiceImpl extends CustomerService {
 
             stmt.execute();
 
-            Integer result = stmt.getInt(pos);
-            return result;
+            Integer result__$ = stmt.getInt(pos);
+            return result__$;
 
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            throw new PlsqlException(e);
         }
     }
 }
